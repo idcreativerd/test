@@ -376,19 +376,23 @@ button,input{font:inherit}button{cursor:pointer}
   }
   async function renderClientPortal(){
     const page=document.querySelector(".page");
-    page.innerHTML='<section class="hero"><div><div class="label">CLIENTE</div><h1>Portal cliente</h1><p>Enlaces públicos para cotización, contrato, cuestionario, galería y entrega.</p></div><button class="btn" id="newLink">Crear enlace</button></section><section class="section"><div class="card table-wrap" id="linksBox"><div class="empty">Cargando enlaces…</div></div></section>';
+    page.innerHTML='<section class="hero"><div><div class="label">CLIENTE</div><h1>Portal cliente</h1><p>Gestiona enlaces por proyecto para cotización, contrato, cuestionario, galería y entrega.</p></div><div class="stack" style="display:flex;gap:8px;flex-wrap:wrap"><select id="portalProject" class="select" style="min-width:190px"></select><select id="portalType" class="select"><option value="quote">Cotización</option><option value="contract">Contrato</option><option value="questionnaire">Cuestionario</option><option value="gallery">Galería</option><option value="delivery">Entrega</option></select><button class="btn" id="newLink">Crear enlace</button></div></section><section class="section"><div class="card table-wrap" id="linksBox"><div class="empty">Cargando enlaces…</div></div></section>';
     try{
+      const ps=demoMode?demoStore.projects||[]:await relatedRows("projects");
+      const sel=document.getElementById("portalProject");
+      sel.innerHTML=ps.length?ps.map(x=>'<option value="'+x.id+'">'+esc(x.name||"Proyecto")+'</option>').join(""):'<option value="">Sin proyectos</option>';
       const r=demoMode?{data:[],error:null}:await client.from("public_links").select("*").eq("workspace_id",activeWorkspaceId).order("created_at",{ascending:false});
       if(r.error)throw r.error;
       const names={lead_form:"Lead form",quote:"Cotización",contract:"Contrato",questionnaire:"Cuestionario",gallery:"Galería",delivery:"Entrega"};
       const rows=r.data||[];
-      document.getElementById("linksBox").innerHTML=rows.length?'<table class="data-table"><thead><tr><th>Tipo</th><th>Token</th><th>Estado</th><th>Creado</th><th></th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(names[x.link_type]||x.link_type)+'</td><td><code>'+esc(String(x.token).slice(0,16))+'…</code></td><td><span class="pill">'+(x.active?"Activo":"Inactivo")+'</span></td><td>'+new Date(x.created_at).toLocaleDateString("es-DO")+'</td><td><button class="mini" data-copy="'+esc(location.origin+"/p/"+x.token)+'">Copiar</button></td></tr>').join("")+'</tbody></table>':'<div class="empty">No hay enlaces públicos todavía.</div>';
-      document.querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{try{await navigator.clipboard.writeText(b.dataset.copy);b.textContent="Copiado"}catch(e){prompt("Copia este enlace:",b.dataset.copy)}});
+      document.getElementById("linksBox").innerHTML=rows.length?'<table class="data-table"><thead><tr><th>Tipo</th><th>Proyecto</th><th>Token</th><th>Estado</th><th>Creado</th><th></th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(names[x.link_type]||x.link_type)+'</td><td>'+esc((ps.find(p=>p.id===x.project_id)||{}).name||"—")+'</td><td><code>'+esc(String(x.token).slice(0,16))+'…</code></td><td><span class="pill">'+(x.active?"Activo":"Inactivo")+'</span></td><td>'+new Date(x.created_at).toLocaleDateString("es-DO")+'</td><td><button class="mini" data-copy="'+esc(location.origin+"/p/"+x.token)+'">Copiar</button></td></tr>').join("")+'</tbody></table>':'<div class="empty">No hay enlaces públicos todavía.</div>';
+      document.querySelectorAll("[data-copy]").forEach(btn=>btn.onclick=async()=>{try{await navigator.clipboard.writeText(btn.dataset.copy);btn.textContent="Copiado"}catch(e){prompt("Copia este enlace:",btn.dataset.copy)}});
     }catch(e){document.getElementById("linksBox").innerHTML='<div class="empty">'+esc(e.message||"No se pudo cargar el portal.")+'</div>'}
     document.getElementById("newLink").onclick=async()=>{
       if(demoMode){alert("Inicia sesión para crear enlaces públicos.");return}
-      const ps=await relatedRows("projects");if(!ps.length){alert("Crea primero un proyecto.");return}
-      const q=await client.rpc("make_public_link",{p_workspace_id:activeWorkspaceId,p_project_id:ps[0].id,p_link_type:"quote"});
+      const projectId=document.getElementById("portalProject").value, linkType=document.getElementById("portalType").value;
+      if(!projectId){alert("Selecciona un proyecto.");return}
+      const q=await client.rpc("make_public_link",{p_workspace_id:activeWorkspaceId,p_project_id:projectId,p_link_type:linkType});
       if(q.error)alert(q.error.message);else await renderClientPortal();
     };
   }
