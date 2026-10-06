@@ -57,7 +57,7 @@ button,input{font:inherit}button{cursor:pointer}
   }
   async function openApp(session,name){
     const ws=await getWorkspace(session);
-    const wsId=ws?.id;
+    const wsId=ws?.id; activeWorkspaceId=wsId; activeWorkspaceName=ws?.name||name||'PHOTO OS';
     const rows={leads:0,clients:0,projects:0,payments:0};
     if(wsId){
       rows.leads=await count("leads",wsId); rows.clients=await count("clients",wsId); rows.projects=await count("projects",wsId); rows.payments=await count("payments",wsId);
@@ -83,6 +83,68 @@ button,input{font:inherit}button{cursor:pointer}
     };
     document.getElementById("demoBtn").onclick=()=>openApp(null,"Pedro Ramirez Photos");
   }
+  function moduleData(label){
+    const map={
+      "Leads":["Gestiona prospectos, origen, fecha del evento y valor estimado.","Nuevo lead","CRM"],
+      "Clientes":["Base de clientes y contactos vinculados a sus proyectos.","Nuevo cliente","CRM"],
+      "Proyectos":["Trabajos activos, fechas, estados, valor y flujo de producción.","Nuevo proyecto","Trabajo"],
+      "Calendario":["Vista rápida de eventos, sesiones, entregas y fechas importantes.","Nuevo evento","Trabajo"],
+      "Tareas":["Pendientes, responsables y fechas de entrega.","Nueva tarea","Trabajo"],
+      "Cotizaciones":["Cotizaciones y propuestas comerciales para tus clientes.","Nueva cotización","Ventas"],
+      "Contratos":["Contratos, versiones y estado de firma.","Nuevo contrato","Ventas"],
+      "Pagos":["Cobros, anticipos, balances y movimientos asociados a proyectos.","Registrar pago","Ventas"],
+      "Galerías":["Galerías de clientes y activos del proyecto.","Nueva galería","Entrega"],
+      "Entregas":["Archivos y entregas finales por proyecto.","Nueva entrega","Entrega"],
+      "Finanzas":["Ingresos, gastos y resumen financiero del negocio.","Registrar movimiento","Negocio"],
+      "Servicios & paquetes":["Catálogo de servicios, paquetes y precios.","Nuevo servicio","Negocio"],
+      "Automatizaciones":["Flujos automáticos para leads, reservas, pagos y entrega.","Nueva automatización","Negocio"],
+      "Equipo":["Usuarios, colaboradores y permisos del workspace.","Invitar miembro","Negocio"],
+      "Configuración":["Datos del negocio, preferencias, notificaciones y seguridad.","Editar configuración","Cuenta"]
+    };
+    return map[label]||["Módulo de PHOTO OS.","Nuevo","PHOTO OS"];
+  }
+  async function showModule(label){
+    const oldPage=document.querySelector(".page");
+    if(!oldPage)return;
+    document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.textContent.trim()===label));
+    const [desc,action,group]=moduleData(label);
+    let listHtml="";
+    if(client && activeWorkspaceId && ["Leads","Clientes","Proyectos","Pagos"].includes(label)){
+      const table=label.toLowerCase()==="leads"?"leads":label.toLowerCase()==="clientes"?"clients":label.toLowerCase()==="proyectos"?"projects":"payments";
+      const cols=label==="Leads"?["name","email","status","event_date","value"]:label==="Clientes"?["name","email","phone"]:label==="Proyectos"?["name","status","event_date","total_value"]:["amount","status","payment_date","method"];
+      try{
+        const q=await client.from(table).select(cols.join(",")).eq("workspace_id",activeWorkspaceId).order(label==="Pagos"?"payment_date":"created_at",{ascending:false}).limit(8);
+        if(!q.error && q.data?.length){
+          listHtml='<div class="list">'+q.data.map(x=>'<div class="row"><span>'+esc(x.name||x.email||x.amount||"Registro")+'</span><span class="pill">'+esc(x.status||x.event_date||x.payment_date||"Ver")+'</span></div>').join("")+'</div>';
+        }else listHtml='<div class="card empty">No hay registros todavía.</div>';
+      }catch(e){listHtml='<div class="card empty">No se pudieron cargar los registros.</div>';}
+    }
+    oldPage.innerHTML='<section class="hero"><div><div class="label">'+esc(group)+'</div><h1>'+esc(label)+'</h1><p>'+esc(desc)+'</p></div><div class="actions"><button class="btn" id="moduleAction">'+esc(action)+'</button></div></section><div class="grid"><div class="card"><div class="label">Estado</div><div class="value">Activo</div><div class="sub">Módulo disponible</div></div><div class="card"><div class="label">Workspace</div><div class="value">1</div><div class="sub">'+esc(activeWorkspaceName||"PHOTO OS")+'</div></div><div class="card"><div class="label">Acceso</div><div class="value">100%</div><div class="sub">Interfaz habilitada</div></div><div class="card"><div class="label">Acción rápida</div><div class="value">+</div><div class="sub">'+esc(action)+'</div></div></div><section class="section"><h2>Actividad del módulo</h2>'+listHtml+'<div class="card empty" style="margin-top:12px">La estructura del módulo ya está conectada a PHOTO OS. Los formularios y acciones específicas se irán habilitando sobre esta misma pantalla.</div></section>';
+    const btn=document.getElementById("moduleAction");
+    if(btn)btn.onclick=()=>alert(action+" — siguiente etapa del módulo");
+  }
+  let activeWorkspaceId=null, activeWorkspaceName=null;
+  document.addEventListener("click", async (e)=>{
+    const btn=e.target.closest(".nav button");
+    if(btn){
+      e.preventDefault();
+      const label=btn.textContent.trim();
+      if(label!=="Dashboard") await showModule(label);
+      else location.reload();
+      return;
+    }
+    const mb=e.target.closest(".mobile button");
+    if(mb){
+      e.preventDefault();
+      const t=mb.textContent.replace(/\s+/g," ").trim();
+      if(t.includes("Inicio")) location.reload();
+      else if(t.includes("CRM")) await showModule("Clientes");
+      else if(t.includes("Calendario")) await showModule("Calendario");
+      else if(t.includes("Menú")) alert("Usa el menú lateral en escritorio o abre PHOTO OS en una pantalla más grande.");
+      else if(t.includes("Nuevo")) await showModule("Proyectos");
+    }
+  });
+
   init();
 })();
 </script>
