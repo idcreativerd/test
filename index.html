@@ -242,13 +242,15 @@ button,input{font:inherit}button{cursor:pointer}
       const render=filter=>{
         const filtered=rows.filter(r=>JSON.stringify(r).toLowerCase().includes((filter||"").toLowerCase()));
         if(!filtered.length){document.getElementById("moduleTable").innerHTML='<div class="empty">No hay registros todavía. Usa "'+esc(cfg.action)+'" para crear el primero.</div>';return}
-        document.getElementById("moduleTable").innerHTML='<table class="data-table"><thead><tr>'+cfg.columns.map(c2=>'<th>'+esc(c2[1])+'</th>').join("")+'<th></th></tr></thead><tbody>'+filtered.map(r=>'<tr data-id="'+esc(r.id)+'">'+cfg.columns.map(c2=>'<td>'+esc(valueFrom(r,c2[0]))+'</td>').join("")+'<td><div class="row-actions">'+(label==="Proyectos"?'<button class="mini" data-workflow="'+esc(r.id)+'">Flujo</button>':'')+'<button class="mini" data-edit="'+esc(r.id)+'">Editar</button><button class="mini danger" data-delete="'+esc(r.id)+'">Borrar</button></div></td></tr>').join("")+'</tbody></table>';
+        document.getElementById("moduleTable").innerHTML='<table class="data-table"><thead><tr>'+cfg.columns.map(c2=>'<th>'+esc(c2[1])+'</th>').join("")+'<th></th></tr></thead><tbody>'+filtered.map(r=>'<tr data-id="'+esc(r.id)+'">'+cfg.columns.map(c2=>'<td>'+esc(valueFrom(r,c2[0]))+'</td>').join("")+'<td><div class="row-actions">'+(label==="Proyectos"?'<button class="mini" data-workflow="'+esc(r.id)+'">Flujo</button>':'')+(label==="Cotizaciones"&&r.status==="accepted"?'<button class="mini" data-convert-quote="'+esc(r.id)+'">Contrato</button>':'')+(label==="Contratos"&&r.status==="signed"?'<button class="mini" data-contract-payment="'+esc(r.id)+'">Pago</button>':'')+'<button class="mini" data-edit="'+esc(r.id)+'">Editar</button><button class="mini danger" data-delete="'+esc(r.id)+'">Borrar</button></div></td></tr>').join("")+'</tbody></table>';
       };
       render("");
       document.getElementById("moduleSearch").oninput=e=>render(e.target.value);
       document.getElementById("moduleTable").onclick=async e=>{
-        const edit=e.target.closest("[data-edit]"), del=e.target.closest("[data-delete]"), flow=e.target.closest("[data-workflow]");
+        const edit=e.target.closest("[data-edit]"), del=e.target.closest("[data-delete]"), flow=e.target.closest("[data-workflow]"), convertQuote=e.target.closest("[data-convert-quote]"), contractPayment=e.target.closest("[data-contract-payment]");
         if(flow){await renderProjectWorkflow(flow.dataset.workflow);return}
+        if(convertQuote){const row=rows.find(x=>x.id===convertQuote.dataset.convertQuote);if(row)await acceptQuoteAndCreateContract(row);return}
+        if(contractPayment){const row=rows.find(x=>x.id===contractPayment.dataset.contractPayment);if(row)await signContractAndCreatePayment(row);return}
         if(edit){const row=rows.find(x=>x.id===edit.dataset.edit);if(row){if(label==="Cotizaciones")await openQuoteEditor(row);else openForm(label,row)}} 
         if(del){await removeRecord(cfg.table,del.dataset.delete);await renderCrud(label)}
       };
@@ -336,6 +338,64 @@ button,input{font:inherit}button{cursor:pointer}
         wrap.remove();await renderCrud("Cotizaciones");
       }catch(err){alert(err.message||"No se pudo guardar la cotización")}
     };
+  }
+
+  async function acceptQuoteAndCreateContract(quote){
+    if(!quote)return;
+    try{
+      if(demoMode){
+        quote.status="accepted"; saveDemo("quotes");
+        const exists=(demoStore.contracts||[]).find(x=>x.quote_id===quote.id);
+        if(!exists){
+          (demoStore.contracts||(demoStore.contracts=[])).unshift({id:crypto.randomUUID(),workspace_id:"demo",client_id:quote.client_id,project_id:quote.project_id,quote_id:quote.id,title:"Contrato · "+quote.title,contract_number:null,status:"draft",terms_version:"v1",signed_by_client:false,created_at:new Date().toISOString()});
+          saveDemo("contracts");
+        }
+      }else{
+        const uq=await client.from("quotes").update({status:"accepted"}).eq("id",quote.id).eq("workspace_id",activeWorkspaceId);
+        if(uq.error)throw uq.error;
+        const existing=await client.from("contracts").select("id").eq("quote_id",quote.id).eq("workspace_id",activeWorkspaceId).limit(1);
+        if(existing.error)throw existing.error;
+        if(!existing.data?.length){
+          const ins=await client.from("contracts").insert({workspace_id:activeWorkspaceId,client_id:quote.client_id||null,project_id:quote.project_id||null,quote_id:quote.id,title:"Contrato · "+quote.title,status:"draft",terms_version:"v1",signed_by_client:false});
+          if(ins.error)throw ins.error;
+        }
+        if(quote.project_id){
+          const up=await client.from("projects").update({total_value:quote.total,currency:quote.currency||"DOP",status:"planning"}).eq("id",quote.project_id).eq("workspace_id",activeWorkspaceId);
+          if(up.error)throw up.error;
+        }
+      }
+      alert("Cotización aceptada y contrato creado.");
+      await renderCrud("Cotizaciones");
+    }catch(e){alert(e.message||"No se pudo convertir la cotización.")}
+  }
+
+  async function signContractAndCreatePayment(contract){
+    if(!contract)return;
+    try{
+      if(demoMode){
+        contract.status="signed";contract.signed_by_client=true;saveDemo("contracts");
+        const exists=(demoStore.payments||[]).find(x=>x.project_id===contract.project_id&&x.notes==="Obligación generada por contrato firmado");
+        if(!exists&&(contract.project_id)){
+          const project=demoStore.projects.find(x=>x.id===contract.project_id);
+          (demoStore.payments||(demoStore.payments=[])).unshift({id:crypto.randomUUID(),workspace_id:"demo",project_id:contract.project_id,amount:Number(project?.total_value||0),currency:project?.currency||"DOP",status:"pending",due_date:null,notes:"Obligación generada por contrato firmado",created_at:new Date().toISOString()});
+          saveDemo("payments");
+        }
+      }else{
+        const uc=await client.from("contracts").update({status:"signed",signed_by_client:true}).eq("id",contract.id).eq("workspace_id",activeWorkspaceId);
+        if(uc.error)throw uc.error;
+        if(contract.project_id){
+          const project=(await client.from("projects").select("total_value,currency").eq("id",contract.project_id).eq("workspace_id",activeWorkspaceId).single()).data;
+          const existing=await client.from("payments").select("id").eq("project_id",contract.project_id).eq("workspace_id",activeWorkspaceId).eq("status","pending").eq("notes","Obligación generada por contrato firmado").limit(1);
+          if(existing.error)throw existing.error;
+          if(!existing.data?.length&&project){
+            const ip=await client.from("payments").insert({workspace_id:activeWorkspaceId,project_id:contract.project_id,amount:Number(project.total_value||0),currency:project.currency||"DOP",status:"pending",notes:"Obligación generada por contrato firmado"});
+            if(ip.error)throw ip.error;
+          }
+        }
+      }
+      alert("Contrato marcado como firmado y obligación de pago creada.");
+      await renderCrud("Contratos");
+    }catch(e){alert(e.message||"No se pudo completar el flujo del contrato.")}
   }
 
   async function renderProjectWorkflow(projectId){
