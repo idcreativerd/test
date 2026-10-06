@@ -38,15 +38,15 @@ button,input{font:inherit}button{cursor:pointer}
   const root=document.getElementById("root"), notice=document.getElementById("notice");
   let client=null, state={projects:0,clients:0,leads:0,payments:0};
   let currentSession=null, demoMode=false;
-  const demoStore={leads:[],clients:[],projects:[],payments:[],quotes:[],contracts:[],galleries:[],deliveries:[],forms:[],automations:[],tasks:[],calendar_events:[],packages:[],income:[],expenses:[]};
+  const demoStore={leads:[],clients:[],projects:[],payments:[],quotes:[],contracts:[],galleries:[],deliveries:[],forms:[],automations:[],tasks:[],calendar_events:[],packages:[],income:[],expenses:[],selections:[],messages:[]};
   function demoKey(table){return "photoos_demo_"+table}
-  function loadDemo(){["leads","clients","projects","payments","quotes","contracts","galleries","deliveries","forms","automations","tasks","calendar_events","packages","income","expenses"].forEach(t=>{try{demoStore[t]=JSON.parse(localStorage.getItem(demoKey(t))||"[]")}catch(e){demoStore[t]=[]}})}
+  function loadDemo(){["leads","clients","projects","payments","quotes","contracts","galleries","deliveries","forms","automations","tasks","calendar_events","packages","income","expenses","selections","messages"].forEach(t=>{try{demoStore[t]=JSON.parse(localStorage.getItem(demoKey(t))||"[]")}catch(e){demoStore[t]=[]}})}
   function saveDemo(t){try{if(!demoStore[t])demoStore[t]=[];localStorage.setItem(demoKey(t),JSON.stringify(demoStore[t]))}catch(e){}}
   loadDemo();
   function msg(t,err){notice.textContent=t;notice.className="notice"+(err?" error":"");notice.style.display="block"}
   function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]))}
   function shell(name,rows){
-    root.innerHTML='<div class="shell"><aside class="sidebar"><div class="brand"><span>◉</span><div>PHOTO OS<small>Business operating system</small></div></div><div class="nav"><div class="nav-title">Principal</div><button class="active">Dashboard</button><button>Leads</button><button>Clientes</button><div class="nav-title">Trabajo</div><button>Proyectos</button><button>Calendario</button><button>Tareas</button><div class="nav-title">Ventas</div><button>Cotizaciones</button><button>Contratos</button><button>Pagos</button><div class="nav-title">Entrega</div><button>Galerías</button><button>Entregas</button><button>Formularios</button><button>Selecciones</button><div class="nav-title">Negocio</div><button>Finanzas</button><button>Ingresos</button><button>Gastos</button><button>Servicios & paquetes</button><button>Automatizaciones</button><button>Equipo</button><button>Reportes</button><button>IA</button><div class="nav-title">Cuenta</div><button>Configuración</button><button>Perfil</button></div></aside><main class="main"><header class="top"><input class="search" placeholder="Buscar clientes, proyectos, tareas…"><div class="user">'+esc(name||"PHOTO OS")+'</div></header><div class="page"><section class="hero"><div><div class="label">WORKSPACE</div><h1>'+esc(name||"Tu negocio fotográfico")+'</h1><p>PHOTO OS está conectado y la interfaz web está cargando correctamente.</p></div><div class="actions"><button class="btn" id="refresh">Actualizar</button></div></section><div class="grid"><div class="card"><div class="label">Leads</div><div class="value">'+rows.leads+'</div><div class="sub">En tu workspace</div></div><div class="card"><div class="label">Clientes</div><div class="value">'+rows.clients+'</div><div class="sub">Clientes activos</div></div><div class="card"><div class="label">Proyectos</div><div class="value">'+rows.projects+'</div><div class="sub">Trabajos registrados</div></div><div class="card"><div class="label">Pagos</div><div class="value">'+rows.payments+'</div><div class="sub">Registros de pago</div></div></div><section class="section"><h2>Estado de la plataforma</h2><div class="list"><div class="row"><span>Frontend</span><span class="pill">OK</span></div><div class="row"><span>Supabase</span><span class="pill" id="dbState">Conectando…</span></div><div class="row"><span>Diseño responsive</span><span class="pill">OK</span></div><div class="row"><span>Sesión</span><span class="pill" id="sessionState">Demo</span></div></div></section></div></main></div><nav class="mobile"><button>⌂<br>Inicio</button><button>◌<br>CRM</button><button>+<br>Nuevo</button><button>▦<br>Calendario</button><button>☰<br>Menú</button></nav>';
+    root.innerHTML='<div class="shell"><aside class="sidebar"><div class="brand"><span>◉</span><div>PHOTO OS<small>Business operating system</small></div></div><div class="nav"><div class="nav-title">Principal</div><button class="active">Dashboard</button><button>Leads</button><button>Clientes</button><div class="nav-title">Trabajo</div><button>Proyectos</button><button>Calendario</button><button>Tareas</button><div class="nav-title">Ventas</div><button>Cotizaciones</button><button>Contratos</button><button>Pagos</button><div class="nav-title">Entrega</div><button>Galerías</button><button>Entregas</button><button>Formularios</button><button>Selecciones</button><div class="nav-title">Negocio</div><button>Finanzas</button><button>Ingresos</button><button>Gastos</button><button>Servicios & paquetes</button><button>Automatizaciones</button><button>Equipo</button><button>Reportes</button><button>IA</button><div class="nav-title">Cuenta</div><button>Configuración</button><button>Perfil</button><button>Portal cliente</button><button>Comunicación</button></div></aside><main class="main"><header class="top"><input class="search" placeholder="Buscar clientes, proyectos, tareas…"><div class="user">'+esc(name||"PHOTO OS")+'</div></header><div class="page"><section class="hero"><div><div class="label">WORKSPACE</div><h1>'+esc(name||"Tu negocio fotográfico")+'</h1><p>PHOTO OS está conectado y la interfaz web está cargando correctamente.</p></div><div class="actions"><button class="btn" id="refresh">Actualizar</button></div></section><div class="grid"><div class="card"><div class="label">Leads</div><div class="value">'+rows.leads+'</div><div class="sub">En tu workspace</div></div><div class="card"><div class="label">Clientes</div><div class="value">'+rows.clients+'</div><div class="sub">Clientes activos</div></div><div class="card"><div class="label">Proyectos</div><div class="value">'+rows.projects+'</div><div class="sub">Trabajos registrados</div></div><div class="card"><div class="label">Pagos</div><div class="value">'+rows.payments+'</div><div class="sub">Registros de pago</div></div></div><section class="section"><h2>Estado de la plataforma</h2><div class="list"><div class="row"><span>Frontend</span><span class="pill">OK</span></div><div class="row"><span>Supabase</span><span class="pill" id="dbState">Conectando…</span></div><div class="row"><span>Diseño responsive</span><span class="pill">OK</span></div><div class="row"><span>Sesión</span><span class="pill" id="sessionState">Demo</span></div></div></section></div></main></div><nav class="mobile"><button>⌂<br>Inicio</button><button>◌<br>CRM</button><button>+<br>Nuevo</button><button>▦<br>Calendario</button><button>☰<br>Menú</button></nav>';
     document.getElementById("refresh").onclick=()=>location.reload();
   }
   async function getWorkspace(session){
@@ -136,7 +136,13 @@ button,input{font:inherit}button{cursor:pointer}
     ],columns:[["description","Concepto"],["category","Categoría"],["amount","Monto"],["currency","Moneda"],["income_date","Fecha"]]},
     "Gastos":{table:"expenses",title:"Gastos",group:"Finanzas",desc:"Costos operativos y gastos del negocio fotográfico.",action:"Registrar gasto",fields:[
       ["category","Categoría","text",true],["description","Descripción","text",false],["amount","Monto","number",true],["currency","Moneda","select",false,"DOP|USD|EUR"],["expense_date","Fecha","date",false]
-    ],columns:[["category","Categoría"],["description","Descripción"],["amount","Monto"],["currency","Moneda"],["expense_date","Fecha"]]}
+    ],columns:[["category","Categoría"],["description","Descripción"],["amount","Monto"],["currency","Moneda"],["expense_date","Fecha"]]},
+    "Selecciones":{table:"selections",title:"Selecciones",group:"Entrega",desc:"Controla selecciones de imágenes realizadas por tus clientes.",action:"Nueva selección",fields:[
+      ["project_id","Proyecto","project",false],["client_id","Cliente","client",false],["status","Estado","select",false,"open|submitted|closed"]
+    ],columns:[["project_id","Proyecto"],["client_id","Cliente"],["status","Estado"],["submitted_at","Enviada"]]},
+    "Comunicación":{table:"messages",title:"Comunicación",group:"Cliente",desc:"Historial de mensajes y comunicaciones por proyecto.",action:"Nuevo mensaje",fields:[
+      ["client_id","Cliente","client",false],["project_id","Proyecto","project",false],["channel","Canal","select",false,"internal|email|whatsapp|sms"],["direction","Dirección","select",false,"outbound|inbound"],["subject","Asunto","text",false],["body","Mensaje","textarea",true]
+    ],columns:[["channel","Canal"],["direction","Dirección"],["subject","Asunto"],["created_at","Fecha"]]}
   };
   const pretty={
     new:"Nuevo",contacted:"Contactado",qualified:"Calificado",won:"Ganado",lost:"Perdido",
@@ -189,6 +195,8 @@ button,input{font:inherit}button{cursor:pointer}
     if(["event_date","due_date"].includes(key)&&row[key])return new Date(row[key]+"T00:00:00").toLocaleDateString("es-DO");
     if(key==="paid_at"&&row[key])return new Date(row[key]).toLocaleDateString("es-DO");
     if(key==="status")return labelFor(row[key]);
+    if(["active","selection_enabled","download_enabled","signed_by_client"].includes(key))return row[key]?"Sí":"No";
+    if(["created_at","sent_at","submitted_at"].includes(key)&&row[key])return new Date(row[key]).toLocaleDateString("es-DO");
     return row[key]??"—";
   }
   async function renderCrud(label){
@@ -198,8 +206,8 @@ button,input{font:inherit}button{cursor:pointer}
     document.getElementById("moduleRefresh").onclick=()=>renderCrud(label);
     try{
       const rows=await fetchRows(cfg), related={clients:[],projects:[],quotes:[],galleries:[]};
-      if(["Proyectos","Pagos","Cotizaciones","Contratos","Galerías","Entregas","Tareas"].includes(label))related.clients=await relatedRows("clients");
-      if(["Pagos","Cotizaciones","Contratos","Galerías","Entregas","Tareas","Calendario"].includes(label))related.projects=await relatedRows("projects");
+      if(["Proyectos","Pagos","Cotizaciones","Contratos","Galerías","Entregas","Tareas","Selecciones","Comunicación"].includes(label))related.clients=await relatedRows("clients");
+      if(["Pagos","Cotizaciones","Contratos","Galerías","Entregas","Tareas","Calendario","Selecciones","Comunicación"].includes(label))related.projects=await relatedRows("projects");
       if(["Contratos"].includes(label))related.quotes=await relatedRows("quotes");
       if(["Entregas"].includes(label))related.galleries=await relatedRows("galleries");
       window.__photoosRelated=related;
@@ -254,32 +262,62 @@ button,input{font:inherit}button{cursor:pointer}
     };
   }
   async function showModule(label){
-    const page=document.querySelector(".page"); if(!page)return;
+    const page=document.querySelector(".page");if(!page)return;
     document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.textContent.trim()===label));
-    if(moduleConfig[label] && !["Ingresos","Gastos"].includes(label)){await renderCrud(label);return}
-    if(["Ingresos","Gastos"].includes(label)){await renderCrud(label);return}
+    if(moduleConfig[label]){await renderCrud(label);return}
     if(label==="Finanzas"){await renderFinance();return}
     if(label==="Equipo"){await renderTeam();return}
     if(label==="Configuración"){await renderSettings();return}
-    const descriptions={
-      "Selecciones":["Controla las selecciones de imágenes que hacen tus clientes.","Nueva selección"],
-      "Comunicación":["Mensajes y comunicaciones asociados a clientes y proyectos.","Nuevo mensaje"],
-      "Inbox":["Bandeja central de comunicaciones del negocio.","Nuevo mensaje"],
-      "Portal cliente":["Espacio de cliente para propuestas, contratos, formularios y entregas.","Abrir portal"],
-      "IA":["Asistente para operaciones, ventas y producción fotográfica.","Abrir asistente"],
-      "Reportes":["Indicadores de ventas, producción y finanzas.","Generar reporte"],
-      "Perfil":["Tu perfil profesional y datos de usuario.","Editar perfil"]
-    };
-    const d=descriptions[label]||["Módulo de PHOTO OS.","Nuevo"];
-    page.innerHTML='<section class="hero"><div><div class="label">PHOTO OS</div><h1>'+esc(label)+'</h1><p>'+esc(d[0])+'</p></div><div class="actions"><button class="btn" id="moduleAction">'+esc(d[1])+'</button></div></section><div class="grid"><div class="card"><div class="label">Estado</div><div class="value">Activo</div><div class="sub">Interfaz preparada</div></div><div class="card"><div class="label">Workspace</div><div class="value">1</div><div class="sub">'+esc(activeWorkspaceName||"PHOTO OS")+'</div></div><div class="card"><div class="label">Próxima etapa</div><div class="value">V2</div><div class="sub">Funciones específicas</div></div><div class="card"><div class="label">Acción</div><div class="value">+</div><div class="sub">'+esc(d[1])+'</div></div></div><section class="section"><div class="card"><div class="kpi-note">Este módulo ya está contemplado en la arquitectura de PHOTO OS. Se seguirá integrando con el flujo Lead → Reserva → Contrato → Pago → Producción → Entrega.</div></div></section>';
-    document.getElementById("moduleAction").onclick=()=>alert(d[1]+" — siguiente etapa");
+    if(label==="Portal cliente"){await renderClientPortal();return}
+    if(label==="Reportes"){await renderReports();return}
+    if(label==="IA"){await renderAI();return}
+    if(label==="Perfil"){await renderProfile();return}
+    if(label==="Inbox")return showModule("Comunicación");
+    if(label==="Cuestionarios")return showModule("Formularios");
+    page.innerHTML='<section class="hero"><div><div class="label">PHOTO OS</div><h1>'+esc(label)+'</h1><p>Este módulo está preparado para la siguiente fase del sistema.</p></div><div class="actions"><button class="btn" id="moduleAction">Continuar</button></div></section><section class="section"><div class="card"><div class="kpi-note">PHOTO OS conecta este módulo con el flujo completo del proyecto.</div></div></section>';
+    document.getElementById("moduleAction").onclick=()=>alert("Próxima fase del módulo: "+label);
   }
-
   async function renderFinance(){
     const page=document.querySelector(".page");
     page.innerHTML='<section class="hero"><div><div class="label">NEGOCIO</div><h1>Finanzas</h1><p>Visión general de ingresos, gastos y resultado.</p></div><button class="btn" id="addIncome">Registrar ingreso</button></section><div class="grid"><div class="card"><div class="label">Ingresos</div><div class="value" id="finIncome">—</div><div class="sub">Total registrado</div></div><div class="card"><div class="label">Gastos</div><div class="value" id="finExpense">—</div><div class="sub">Total registrado</div></div><div class="card"><div class="label">Resultado</div><div class="value" id="finNet">—</div><div class="sub">Ingresos − gastos</div></div><div class="card"><div class="label">Moneda</div><div class="value">DOP</div><div class="sub">Resumen de referencia</div></div></div><section class="section"><div class="toolbar"><div class="toolbar-left"><button class="mini" id="openIncome">Ver ingresos</button><button class="mini" id="openExpense">Ver gastos</button></div></div></section>';
     try{
-      const inc=await relatedRows("income"), exp=await relatedRows("expenses");
+      const inc=await rela  async function renderClientPortal(){
+    const page=document.querySelector(".page");
+    page.innerHTML='<section class="hero"><div><div class="label">CLIENTE</div><h1>Portal cliente</h1><p>Enlaces públicos para cotización, contrato, cuestionario, galería y entrega.</p></div><button class="btn" id="newLink">Crear enlace</button></section><section class="section"><div class="card table-wrap" id="linksBox"><div class="empty">Cargando enlaces…</div></div></section>';
+    try{
+      const r=demoMode?{data:[],error:null}:await client.from("public_links").select("*").eq("workspace_id",activeWorkspaceId).order("created_at",{ascending:false});
+      if(r.error)throw r.error;
+      const names={lead_form:"Lead form",quote:"Cotización",contract:"Contrato",questionnaire:"Cuestionario",gallery:"Galería",delivery:"Entrega"};
+      const rows=r.data||[];
+      document.getElementById("linksBox").innerHTML=rows.length?'<table class="data-table"><thead><tr><th>Tipo</th><th>Token</th><th>Estado</th><th>Creado</th><th></th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(names[x.link_type]||x.link_type)+'</td><td><code>'+esc(String(x.token).slice(0,16))+'…</code></td><td><span class="pill">'+(x.active?"Activo":"Inactivo")+'</span></td><td>'+new Date(x.created_at).toLocaleDateString("es-DO")+'</td><td><button class="mini" data-copy="'+esc(location.origin+"/p/"+x.token)+'">Copiar</button></td></tr>').join("")+'</tbody></table>':'<div class="empty">No hay enlaces públicos todavía.</div>';
+      document.querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{try{await navigator.clipboard.writeText(b.dataset.copy);b.textContent="Copiado"}catch(e){prompt("Copia este enlace:",b.dataset.copy)}});
+    }catch(e){document.getElementById("linksBox").innerHTML='<div class="empty">'+esc(e.message||"No se pudo cargar el portal.")+'</div>'}
+    document.getElementById("newLink").onclick=async()=>{
+      if(demoMode){alert("Inicia sesión para crear enlaces públicos.");return}
+      const ps=await relatedRows("projects");if(!ps.length){alert("Crea primero un proyecto.");return}
+      const q=await client.rpc("make_public_link",{p_workspace_id:activeWorkspaceId,p_project_id:ps[0].id,p_link_type:"quote"});
+      if(q.error)alert(q.error.message);else await renderClientPortal();
+    };
+  }
+
+  async function renderReports(){
+    const page=document.querySelector(".page");
+    page.innerHTML='<section class="hero"><div><div class="label">NEGOCIO</div><h1>Reportes</h1><p>Indicadores de clientes, proyectos y cobros.</p></div><button class="btn" id="refreshReport">Actualizar</button></section><div class="grid"><div class="card"><div class="label">Leads</div><div class="value" id="rpLeads">—</div></div><div class="card"><div class="label">Clientes</div><div class="value" id="rpClients">—</div></div><div class="card"><div class="label">Proyectos</div><div class="value" id="rpProjects">—</div></div><div class="card"><div class="label">Pagado</div><div class="value" id="rpPaid">—</div></div></div><section class="section"><div class="card"><div class="kpi-note" id="rpText">Calculando…</div></div></section>';
+    try{const [l,cl,p,pay]=await Promise.all([relatedRows("leads"),relatedRows("clients"),relatedRows("projects"),relatedRows("payments")]);const paid=pay.filter(x=>x.status==="paid").reduce((s,x)=>s+Number(x.amount||0),0);document.getElementById("rpLeads").textContent=l.length;document.getElementById("rpClients").textContent=cl.length;document.getElementById("rpProjects").textContent=p.length;document.getElementById("rpPaid").textContent=paid.toLocaleString("en-US",{maximumFractionDigits:2});document.getElementById("rpText").textContent="Resumen: "+l.length+" leads, "+cl.length+" clientes, "+p.length+" proyectos y "+paid.toLocaleString("en-US",{maximumFractionDigits:2})+" pagados."; }catch(e){document.getElementById("rpText").textContent="No se pudo calcular el reporte.";}
+    document.getElementById("refreshReport").onclick=()=>renderReports();
+  }
+
+  async function renderAI(){
+    const page=document.querySelector(".page");
+    page.innerHTML='<section class="hero"><div><div class="label">INTELIGENCIA</div><h1>IA de PHOTO OS</h1><p>Asistente operativo para ventas, seguimiento y producción.</p></div></section><section class="section"><div class="card"><div class="field"><label>¿Qué necesitas?</label><textarea id="aiPrompt" placeholder="Ej.: redacta un seguimiento para una pareja que no ha respondido."></textarea></div><div class="modal-actions"><button class="btn" id="askAI">Generar</button></div><div class="card" style="margin-top:14px;background:#f7f8f5"><div id="aiAnswer" class="kpi-note">La interfaz está lista. La conexión al proveedor de IA se agregará del lado seguro del servidor.</div></div></div></section>';
+    document.getElementById("askAI").onclick=()=>{const p=document.getElementById("aiPrompt").value.trim();document.getElementById("aiAnswer").textContent=p?"Borrador recomendado: "+p+". Siguiente acción: crear una tarea, definir una fecha límite y preparar el mensaje al cliente.":"Escribe una solicitud.";};
+  }
+
+  async function renderProfile(){
+    const page=document.querySelector(".page");let profile=null;if(currentSession&&!demoMode){try{profile=(await client.from("profiles").select("*").eq("id",currentSession.user.id).single()).data}catch(e){}}profile=profile||{full_name:"Pedro Ramirez",avatar_url:""};
+    page.innerHTML='<section class="hero"><div><div class="label">CUENTA</div><h1>Perfil</h1><p>Información del usuario.</p></div><button class="btn" id="saveProfile">Guardar</button></section><section class="section"><div class="card"><div class="form-grid"><div><label>Nombre completo</label><input id="profileName" value="'+esc(profile.full_name||"")+'"></div><div><label>Correo</label><input value="'+esc(currentSession?.user?.email||"")+'" disabled></div><div class="full"><label>Avatar URL</label><input id="profileAvatar" value="'+esc(profile.avatar_url||"")+'"></div></div></div></section>';
+    document.getElementById("saveProfile").onclick=async()=>{if(demoMode){alert("Guardado en modo demo.");return}const q=await client.from("profiles").upsert({id:currentSession.user.id,full_name:document.getElementById("profileName").value||null,avatar_url:document.getElementById("profileAvatar").value||null,updated_at:new Date().toISOString()});if(q.error)alert(q.error.message);else alert("Perfil actualizado.");};
+  }tedRows("income"), exp=await relatedRows("expenses");
       const sum=a=>a.reduce((s,x)=>s+Number(x.amount||0),0);
       const i=sum(inc),e=sum(exp); document.getElementById("finIncome").textContent=i.toLocaleString("en-US",{maximumFractionDigits:2});document.getElementById("finExpense").textContent=e.toLocaleString("en-US",{maximumFractionDigits:2});document.getElementById("finNet").textContent=(i-e).toLocaleString("en-US",{maximumFractionDigits:2});
     }catch(err){}
