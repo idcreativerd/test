@@ -75,21 +75,25 @@ button,input{font:inherit}button{cursor:pointer}
     document.getElementById("sessionState").textContent=session?"Sesión activa":"Demo";
   }
   async function init(){
-    if(!window.supabase){msg("La interfaz se cargó, pero el proveedor de autenticación no respondió. Puedes usar Ver demo.",true);return}
+    // Bind actions before checking external services so Demo always works.
+    const loginBtn=document.getElementById("loginBtn"), demoBtn=document.getElementById("demoBtn");
+    if(demoBtn)demoBtn.onclick=async()=>{loadDemo();await openApp(null,"Pedro Ramirez Photos")};
+    if(loginBtn)loginBtn.onclick=async function(){
+      if(!client){msg("La conexión de acceso todavía no está disponible. Usa “Ver demo” para entrar ahora.",true);return}
+      msg("Conectando…");
+      try{
+        const {data,error}=await client.auth.signInWithPassword({email:document.getElementById("email").value.trim(),password:document.getElementById("password").value});
+        if(error)throw error;
+        if(!data.session)throw new Error("No se recibió una sesión.");
+        await openApp(data.session,data.user.email);
+      }catch(e){msg(e.message||"No se pudo iniciar sesión.",true)}
+    };
+    if(!window.supabase){msg("La interfaz está disponible. La conexión de autenticación no respondió; entra con “Ver demo”.",true);return}
     try{
       client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
       const s=await client.auth.getSession();
       if(s.data?.session) await openApp(s.data.session,s.data.session.user.email);
-    }catch(e){msg("PHOTO OS está cargando correctamente. La conexión de cuenta se podrá activar después.",true)}
-    document.getElementById("loginBtn").onclick=async function(){
-      msg("Conectando…");
-      try{
-        const {data,error}=await client.auth.signInWithPassword({email:document.getElementById("email").value,password:document.getElementById("password").value});
-        if(error)throw error;
-        await openApp(data.session,data.user.email);
-      }catch(e){msg(e.message||"No se pudo iniciar sesión.",true)}
-    };
-    document.getElementById("demoBtn").onclick=()=>openApp(null,"Pedro Ramirez Photos");
+    }catch(e){msg("La interfaz está disponible. Entra con “Ver demo” mientras se restablece la conexión de cuenta.",true)}
   }
   const moduleConfig={
     "Leads":{table:"leads",title:"Leads",group:"CRM",desc:"Prospectos desde el primer contacto hasta la reserva.",action:"Nuevo lead",fields:[
