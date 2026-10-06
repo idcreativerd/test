@@ -24,7 +24,7 @@ button,input{font:inherit}button{cursor:pointer}
       <div id="login">
         <div class="field"><label>Correo</label><input id="email" type="email" autocomplete="email" placeholder="tu@email.com"></div>
         <div class="field"><label>Contraseña</label><input id="password" type="password" autocomplete="current-password" placeholder="••••••••"></div>
-        <div class="stack"><button class="btn" id="loginBtn">Entrar</button><button class="btn secondary" id="demoBtn">Ver demo</button></div>
+        <div class="stack"><button class="btn" id="loginBtn">Entrar</button><button class="btn secondary" id="signupBtn">Crear cuenta</button><button class="btn secondary" id="demoBtn">Ver demo</button></div>
       </div>
       <div id="notice" class="notice"></div>
     </div>
@@ -77,7 +77,25 @@ button,input{font:inherit}button{cursor:pointer}
   async function init(){
     // Bind actions before checking external services so Demo always works.
     const loginBtn=document.getElementById("loginBtn"), demoBtn=document.getElementById("demoBtn");
+    const signupBtn=document.getElementById("signupBtn");
     if(demoBtn)demoBtn.onclick=async()=>{loadDemo();await openApp(null,"Pedro Ramirez Photos")};
+    if(signupBtn)signupBtn.onclick=async function(){
+      if(!client){msg("La conexión de cuenta todavía no está disponible. Usa “Ver demo” para entrar ahora.",true);return}
+      const email=document.getElementById("email").value.trim(), password=document.getElementById("password").value;
+      if(!email||!password){msg("Escribe tu correo y una contraseña para crear la cuenta.",true);return}
+      if(password.length<6){msg("La contraseña debe tener al menos 6 caracteres.",true);return}
+      msg("Creando cuenta…");
+      try{
+        const {data,error}=await client.auth.signUp({email,password});
+        if(error){
+          const m=(error.message||"").toLowerCase();
+          if(m.includes("users_email_partial_key")||m.includes("already registered")||m.includes("already exists")||m.includes("duplicate")) throw new Error("Esta cuenta ya existe. Inicia sesión o recupera tu contraseña.");
+          throw error;
+        }
+        if(data.session) await openApp(data.session,email);
+        else msg("Cuenta creada. Revisa tu correo para confirmar la cuenta y luego inicia sesión.");
+      }catch(e){msg(e.message||"No se pudo crear la cuenta.",true)}
+    };
     if(loginBtn)loginBtn.onclick=async function(){
       if(!client){msg("La conexión de acceso todavía no está disponible. Usa “Ver demo” para entrar ahora.",true);return}
       msg("Conectando…");
@@ -167,6 +185,11 @@ button,input{font:inherit}button{cursor:pointer}
   async function relatedRows(table){
     if(demoMode)return demoStore[table]||[];
     const {data,error}=await client.from(table).select("*").eq("workspace_id",activeWorkspaceId).order("created_at",{ascending:false}).limit(200);
+    if(error)throw error; return data||[];
+  }
+  async function relatedByProject(table,projectId){
+    if(demoMode)return (demoStore[table]||[]).filter(x=>x.project_id===projectId);
+    const {data,error}=await client.from(table).select("*").eq("workspace_id",activeWorkspaceId).eq("project_id",projectId).order("created_at",{ascending:false}).limit(100);
     if(error)throw error; return data||[];
   }
   function fieldHtml(f,related){
@@ -321,10 +344,10 @@ button,input{font:inherit}button{cursor:pointer}
       const q=demoMode?{data:demoStore.projects.find(x=>x.id===projectId)}:await client.from("projects").select("*").eq("id",projectId).eq("workspace_id",activeWorkspaceId).single();const pr=q.data;if(!pr){page.innerHTML='<div class="card empty">Proyecto no encontrado.</div>';return}
       const cr=pr.client_id?(demoMode?{data:demoStore.clients.find(x=>x.id===pr.client_id)}:await client.from("clients").select("*").eq("id",pr.client_id).maybeSingle()):{data:null};const cl=cr.data;
       const get=async t=>demoMode?(demoStore[t]||[]).filter(x=>x.project_id===projectId):relatedByProject(t,projectId);
-      const [quotes,contracts,payments,tasks,galleries,selections,deliveries]=await Promise.all(["quotes","contracts","payments","tasks","galleries","selections","deliveries"].map(get));
+      const [quotes,contracts,payments,tasks,galleries,selections,deliveries,notes,events]=await Promise.all(["quotes","contracts","payments","tasks","galleries","selections","deliveries","project_notes","calendar_events"].map(get));
       const stages=[["lead","Lead"],["planning","Planificación"],["shooting","Sesión"],["editing","Edición"],["delivered","Entregado"],["closed","Cerrado"]],pos=Math.max(0,stages.findIndex(x=>x[0]===pr.status));
       const paid=payments.filter(x=>x.status==="paid").reduce((s,x)=>s+Number(x.amount||0),0),balance=Number(pr.total_value||0)-paid;
-      page.innerHTML='<button class="mini" id="backProj">← Proyectos</button><section class="hero" style="margin-top:10px"><div><div class="label">PROYECTO</div><h1>'+esc(pr.name)+'</h1><p>'+esc(pr.project_type||"Sesión")+' · '+esc(pr.event_date||"Sin fecha")+' · '+esc(pr.location||"Sin lugar")+'</p></div><button class="btn" id="editProj">Editar proyecto</button></section><div class="workflow">'+stages.map((s,i)=>'<button class="step '+(i===pos?"active ":"")+(i<pos?"done":"")+'" data-stage="'+s[0]+'">'+esc(s[1])+'</button>').join("")+'</div><div class="grid"><div class="card"><div class="label">Cliente</div><div class="value" style="font-size:18px">'+esc(cl?((cl.first_name+" "+(cl.last_name||"")).trim()):"Sin cliente")+'</div><div class="sub">'+esc(cl?.email||"")+'</div></div><div class="card"><div class="label">Valor</div><div class="value" style="font-size:18px">'+Number(pr.total_value||0).toLocaleString("en-US")+' '+esc(pr.currency||"DOP")+'</div></div><div class="card"><div class="label">Pagado</div><div class="value" style="font-size:18px">'+paid.toLocaleString("en-US")+'</div></div><div class="card"><div class="label">Saldo</div><div class="value" style="font-size:18px">'+balance.toLocaleString("en-US")+'</div></div></div><div class="detail-grid"><div><div class="card"><h3>Ventas</h3><div class="link-card"><strong>Cotizaciones</strong><div class="meta">'+(quotes.length?quotes.map(x=>esc(x.title)+" · "+labelFor(x.status)+" · "+Number(x.total||0).toLocaleString("en-US")+" "+esc(x.currency||"")).join("<br>"):"Sin cotizaciones")+'</div></div><div class="link-card"><strong>Contratos</strong><div class="meta">'+(contracts.length?contracts.map(x=>esc(x.title)+" · "+labelFor(x.status)+(x.signed_by_client?" · Firmado":"")).join("<br>"):"Sin contratos")+'</div></div><div class="link-card"><strong>Pagos</strong><div class="meta">'+(payments.length?payments.map(x=>Number(x.amount||0).toLocaleString("en-US")+" "+esc(x.currency||"")+" · "+labelFor(x.status)).join("<br>"):"Sin pagos")+'</div></div></div><div class="card" style="margin-top:14px"><h3>Producción y entrega</h3><div class="link-card"><strong>Tareas</strong><div class="meta">'+(tasks.length?tasks.map(x=>esc(x.title)+" · "+labelFor(x.status)).join("<br>"):"Sin tareas")+'</div></div><div class="link-card"><strong>Galerías</strong><div class="meta">'+(galleries.length?galleries.map(x=>esc(x.name)+" · "+labelFor(x.status)).join("<br>"):"Sin galerías")+'</div></div><div class="link-card"><strong>Selección</strong><div class="meta">'+(selections.length?selections.map(x=>labelFor(x.status)).join("<br>"):"Sin selección")+'</div></div><div class="link-card"><strong>Entregas</strong><div class="meta">'+(deliveries.length?deliveries.map(x=>esc(x.name)+" · "+labelFor(x.status)).join("<br>"):"Sin entregas")+'</div></div></div></div><div><div class="card"><h3>Acciones</h3><div class="stack"><button class="btn secondary" id="flowQuote">+ Cotización</button><button class="btn secondary" id="flowContract">+ Contrato</button><button class="btn secondary" id="flowPayment">+ Pago</button><button class="btn secondary" id="flowTask">+ Tarea</button><button class="btn secondary" id="flowGallery">+ Galería</button><button class="btn secondary" id="flowDelivery">+ Entrega</button></div></div></div></div>';
+      page.innerHTML='<button class="mini" id="backProj">← Proyectos</button><section class="hero" style="margin-top:10px"><div><div class="label">PROYECTO</div><h1>'+esc(pr.name)+'</h1><p>'+esc(pr.project_type||"Sesión")+' · '+esc(pr.event_date||"Sin fecha")+' · '+esc(pr.location||"Sin lugar")+'</p></div><button class="btn" id="editProj">Editar proyecto</button></section><div class="workflow">'+stages.map((s,i)=>'<button class="step '+(i===pos?"active ":"")+(i<pos?"done":"")+'" data-stage="'+s[0]+'">'+esc(s[1])+'</button>').join("")+'</div><div class="grid"><div class="card"><div class="label">Cliente</div><div class="value" style="font-size:18px">'+esc(cl?((cl.first_name+" "+(cl.last_name||"")).trim()):"Sin cliente")+'</div><div class="sub">'+esc(cl?.email||"")+'</div></div><div class="card"><div class="label">Valor</div><div class="value" style="font-size:18px">'+Number(pr.total_value||0).toLocaleString("en-US")+' '+esc(pr.currency||"DOP")+'</div></div><div class="card"><div class="label">Pagado</div><div class="value" style="font-size:18px">'+paid.toLocaleString("en-US")+'</div></div><div class="card"><div class="label">Saldo</div><div class="value" style="font-size:18px">'+balance.toLocaleString("en-US")+'</div></div></div><div class="detail-grid"><div><div class="card"><h3>Ventas</h3><div class="link-card"><strong>Cotizaciones</strong><div class="meta">'+(quotes.length?quotes.map(x=>esc(x.title)+" · "+labelFor(x.status)+" · "+Number(x.total||0).toLocaleString("en-US")+" "+esc(x.currency||"")).join("<br>"):"Sin cotizaciones")+'</div></div><div class="link-card"><strong>Contratos</strong><div class="meta">'+(contracts.length?contracts.map(x=>esc(x.title)+" · "+labelFor(x.status)+(x.signed_by_client?" · Firmado":"")).join("<br>"):"Sin contratos")+'</div></div><div class="link-card"><strong>Pagos</strong><div class="meta">'+(payments.length?payments.map(x=>Number(x.amount||0).toLocaleString("en-US")+" "+esc(x.currency||"")+" · "+labelFor(x.status)).join("<br>"):"Sin pagos")+'</div></div></div><div class="card" style="margin-top:14px"><h3>Producción y entrega</h3><div class="link-card"><strong>Tareas</strong><div class="meta">'+(tasks.length?tasks.map(x=>esc(x.title)+" · "+labelFor(x.status)).join("<br>"):"Sin tareas")+'</div></div><div class="link-card"><strong>Galerías</strong><div class="meta">'+(galleries.length?galleries.map(x=>esc(x.name)+" · "+labelFor(x.status)).join("<br>"):"Sin galerías")+'</div></div><div class="link-card"><strong>Selección</strong><div class="meta">'+(selections.length?selections.map(x=>labelFor(x.status)).join("<br>"):"Sin selección")+'</div></div><div class="link-card"><strong>Entregas</strong><div class="meta">'+(deliveries.length?deliveries.map(x=>esc(x.name)+" · "+labelFor(x.status)).join("<br>"):"Sin entregas")+'</div></div></div><div class="card" style="margin-top:14px"><h3>Notas del proyecto</h3><div class="link-card"><div class="meta">'+(notes.length?notes.slice(0,6).map(x=>esc(x.body)+" · "+new Date(x.created_at).toLocaleDateString("es-DO")).join("<br>"):"Sin notas todavía")+'</div><button class="mini" id="addNote" style="margin-top:10px">+ Agregar nota</button></div></div><div class="card" style="margin-top:14px"><h3>Cronograma</h3><div class="link-card"><div class="meta">'+(events.length?events.slice(0,6).map(x=>esc(x.title)+" · "+new Date(x.starts_at).toLocaleString("es-DO",{dateStyle:"short",timeStyle:"short"})).join("<br>"):"Sin eventos vinculados")+'</div><button class="mini" id="addEvent" style="margin-top:10px">+ Agregar evento</button></div></div></div><div><div class="card"><h3>Acciones</h3><div class="stack"><button class="btn secondary" id="flowQuote">+ Cotización</button><button class="btn secondary" id="flowContract">+ Contrato</button><button class="btn secondary" id="flowPayment">+ Pago</button><button class="btn secondary" id="flowTask">+ Tarea</button><button class="btn secondary" id="flowGallery">+ Galería</button><button class="btn secondary" id="flowDelivery">+ Entrega</button></div></div></div></div>';
       document.getElementById("backProj").onclick=()=>showModule("Proyectos");document.getElementById("editProj").onclick=()=>openForm("Proyectos",pr);
       document.querySelectorAll("[data-stage]").forEach(b=>b.onclick=async()=>{const s=b.dataset.stage;if(demoMode){pr.status=s;saveDemo("projects");await renderProjectWorkflow(projectId);return}const u=await client.from("projects").update({status:s}).eq("id",projectId).eq("workspace_id",activeWorkspaceId);if(u.error)alert(u.error.message);else await renderProjectWorkflow(projectId)});
       document.getElementById("flowQuote").onclick=()=>{pendingProjectId=projectId;openQuoteEditor()};
@@ -333,6 +356,22 @@ button,input{font:inherit}button{cursor:pointer}
       document.getElementById("flowTask").onclick=()=>{pendingProjectId=projectId;openForm("Tareas")};
       document.getElementById("flowGallery").onclick=()=>{pendingProjectId=projectId;openForm("Galerías")};
       document.getElementById("flowDelivery").onclick=()=>{pendingProjectId=projectId;openForm("Entregas")};
+      document.getElementById("addNote").onclick=async()=>{
+        const body=prompt("Nota del proyecto:");
+        if(!body?.trim())return;
+        if(demoMode){demoStore.project_notes=demoStore.project_notes||[];demoStore.project_notes.unshift({id:crypto.randomUUID(),project_id:projectId,body:body.trim(),created_at:new Date().toISOString()});saveDemo("project_notes");}
+        else {const r=await client.from("project_notes").insert({workspace_id:activeWorkspaceId,project_id:projectId,body:body.trim(),author_user_id:currentSession?.user?.id||null});if(r.error){alert(r.error.message);return}}
+        await renderProjectWorkflow(projectId);
+      };
+      document.getElementById("addEvent").onclick=async()=>{
+        const title=prompt("Nombre del evento:");
+        if(!title?.trim())return;
+        const starts=prompt("Fecha y hora (ej. 2026-10-10T10:00):",pr.event_date?pr.event_date+"T10:00":"");
+        if(!starts)return;
+        if(demoMode){demoStore.calendar_events.unshift({id:crypto.randomUUID(),project_id:projectId,title:title.trim(),event_type:"project",starts_at:new Date(starts).toISOString(),created_at:new Date().toISOString()});saveDemo("calendar_events");}
+        else {const r=await client.from("calendar_events").insert({workspace_id:activeWorkspaceId,project_id:projectId,title:title.trim(),event_type:"project",starts_at:new Date(starts).toISOString(),all_day:false});if(r.error){alert(r.error.message);return}}
+        await renderProjectWorkflow(projectId);
+      };
     }catch(e){page.innerHTML='<div class="card empty">'+esc(e.message||"No se pudo cargar el proyecto.")+'</div>'}
   }
   async function renderClientPortal(){
