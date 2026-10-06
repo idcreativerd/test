@@ -38,15 +38,15 @@ button,input{font:inherit}button{cursor:pointer}
   const root=document.getElementById("root"), notice=document.getElementById("notice");
   let client=null, state={projects:0,clients:0,leads:0,payments:0};
   let currentSession=null, demoMode=false;
-  const demoStore={leads:[],clients:[],projects:[],payments:[]};
+  const demoStore={leads:[],clients:[],projects:[],payments:[],quotes:[],contracts:[],galleries:[],deliveries:[],forms:[],automations:[],tasks:[],calendar_events:[],packages:[],income:[],expenses:[]};
   function demoKey(table){return "photoos_demo_"+table}
-  function loadDemo(){["leads","clients","projects","payments"].forEach(t=>{try{demoStore[t]=JSON.parse(localStorage.getItem(demoKey(t))||"[]")}catch(e){demoStore[t]=[]}})}
-  function saveDemo(t){try{localStorage.setItem(demoKey(t),JSON.stringify(demoStore[t]))}catch(e){}}
+  function loadDemo(){["leads","clients","projects","payments","quotes","contracts","galleries","deliveries","forms","automations","tasks","calendar_events","packages","income","expenses"].forEach(t=>{try{demoStore[t]=JSON.parse(localStorage.getItem(demoKey(t))||"[]")}catch(e){demoStore[t]=[]}})}
+  function saveDemo(t){try{if(!demoStore[t])demoStore[t]=[];localStorage.setItem(demoKey(t),JSON.stringify(demoStore[t]))}catch(e){}}
   loadDemo();
   function msg(t,err){notice.textContent=t;notice.className="notice"+(err?" error":"");notice.style.display="block"}
   function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]))}
   function shell(name,rows){
-    root.innerHTML='<div class="shell"><aside class="sidebar"><div class="brand"><span>◉</span><div>PHOTO OS<small>Business operating system</small></div></div><div class="nav"><div class="nav-title">Principal</div><button class="active">Dashboard</button><button>Leads</button><button>Clientes</button><div class="nav-title">Trabajo</div><button>Proyectos</button><button>Calendario</button><button>Tareas</button><div class="nav-title">Ventas</div><button>Cotizaciones</button><button>Contratos</button><button>Pagos</button><div class="nav-title">Entrega</div><button>Galerías</button><button>Entregas</button><div class="nav-title">Negocio</div><button>Finanzas</button><button>Servicios & paquetes</button><button>Automatizaciones</button><button>Equipo</button><div class="nav-title">Cuenta</div><button>Configuración</button></div></aside><main class="main"><header class="top"><input class="search" placeholder="Buscar clientes, proyectos, tareas…"><div class="user">'+esc(name||"PHOTO OS")+'</div></header><div class="page"><section class="hero"><div><div class="label">WORKSPACE</div><h1>'+esc(name||"Tu negocio fotográfico")+'</h1><p>PHOTO OS está conectado y la interfaz web está cargando correctamente.</p></div><div class="actions"><button class="btn" id="refresh">Actualizar</button></div></section><div class="grid"><div class="card"><div class="label">Leads</div><div class="value">'+rows.leads+'</div><div class="sub">En tu workspace</div></div><div class="card"><div class="label">Clientes</div><div class="value">'+rows.clients+'</div><div class="sub">Clientes activos</div></div><div class="card"><div class="label">Proyectos</div><div class="value">'+rows.projects+'</div><div class="sub">Trabajos registrados</div></div><div class="card"><div class="label">Pagos</div><div class="value">'+rows.payments+'</div><div class="sub">Registros de pago</div></div></div><section class="section"><h2>Estado de la plataforma</h2><div class="list"><div class="row"><span>Frontend</span><span class="pill">OK</span></div><div class="row"><span>Supabase</span><span class="pill" id="dbState">Conectando…</span></div><div class="row"><span>Diseño responsive</span><span class="pill">OK</span></div><div class="row"><span>Sesión</span><span class="pill" id="sessionState">Demo</span></div></div></section></div></main></div><nav class="mobile"><button>⌂<br>Inicio</button><button>◌<br>CRM</button><button>+<br>Nuevo</button><button>▦<br>Calendario</button><button>☰<br>Menú</button></nav>';
+    root.innerHTML='<div class="shell"><aside class="sidebar"><div class="brand"><span>◉</span><div>PHOTO OS<small>Business operating system</small></div></div><div class="nav"><div class="nav-title">Principal</div><button class="active">Dashboard</button><button>Leads</button><button>Clientes</button><div class="nav-title">Trabajo</div><button>Proyectos</button><button>Calendario</button><button>Tareas</button><div class="nav-title">Ventas</div><button>Cotizaciones</button><button>Contratos</button><button>Pagos</button><div class="nav-title">Entrega</div><button>Galerías</button><button>Entregas</button><button>Formularios</button><button>Selecciones</button><div class="nav-title">Negocio</div><button>Finanzas</button><button>Ingresos</button><button>Gastos</button><button>Servicios & paquetes</button><button>Automatizaciones</button><button>Equipo</button><button>Reportes</button><button>IA</button><div class="nav-title">Cuenta</div><button>Configuración</button><button>Perfil</button></div></aside><main class="main"><header class="top"><input class="search" placeholder="Buscar clientes, proyectos, tareas…"><div class="user">'+esc(name||"PHOTO OS")+'</div></header><div class="page"><section class="hero"><div><div class="label">WORKSPACE</div><h1>'+esc(name||"Tu negocio fotográfico")+'</h1><p>PHOTO OS está conectado y la interfaz web está cargando correctamente.</p></div><div class="actions"><button class="btn" id="refresh">Actualizar</button></div></section><div class="grid"><div class="card"><div class="label">Leads</div><div class="value">'+rows.leads+'</div><div class="sub">En tu workspace</div></div><div class="card"><div class="label">Clientes</div><div class="value">'+rows.clients+'</div><div class="sub">Clientes activos</div></div><div class="card"><div class="label">Proyectos</div><div class="value">'+rows.projects+'</div><div class="sub">Trabajos registrados</div></div><div class="card"><div class="label">Pagos</div><div class="value">'+rows.payments+'</div><div class="sub">Registros de pago</div></div></div><section class="section"><h2>Estado de la plataforma</h2><div class="list"><div class="row"><span>Frontend</span><span class="pill">OK</span></div><div class="row"><span>Supabase</span><span class="pill" id="dbState">Conectando…</span></div><div class="row"><span>Diseño responsive</span><span class="pill">OK</span></div><div class="row"><span>Sesión</span><span class="pill" id="sessionState">Demo</span></div></div></section></div></main></div><nav class="mobile"><button>⌂<br>Inicio</button><button>◌<br>CRM</button><button>+<br>Nuevo</button><button>▦<br>Calendario</button><button>☰<br>Menú</button></nav>';
     document.getElementById("refresh").onclick=()=>location.reload();
   }
   async function getWorkspace(session){
@@ -103,7 +103,40 @@ button,input{font:inherit}button{cursor:pointer}
     ],columns:[["name","Proyecto"],["project_type","Tipo"],["event_date","Fecha"],["status","Estado"],["total_value","Valor"]]},
     "Pagos":{table:"payments",title:"Pagos",group:"Ventas",desc:"Anticipos, saldos, fechas de vencimiento y pagos recibidos.",action:"Registrar pago",fields:[
       ["project_id","Proyecto","project",false],["amount","Monto","number",true],["currency","Moneda","select",false,"DOP|USD|EUR"],["status","Estado","select",false,"pending|paid|overdue|partial"],["due_date","Fecha límite","date",false],["paid_at","Fecha de pago","date",false],["notes","Notas","textarea",false]
-    ],columns:[["project_id","Proyecto"],["amount","Monto"],["currency","Moneda"],["status","Estado"],["due_date","Vence"]]}
+    ],columns:[["project_id","Proyecto"],["amount","Monto"],["currency","Moneda"],["status","Estado"],["due_date","Vence"]]},
+    "Cotizaciones":{table:"quotes",title:"Cotizaciones",group:"Ventas",desc:"Propuestas comerciales conectadas a clientes y proyectos.",action:"Nueva cotización",fields:[
+      ["title","Título","text",true],["client_id","Cliente","client",false],["project_id","Proyecto","project",false],["number","Número","text",false],["status","Estado","select",false,"draft|sent|viewed|accepted|declined|expired"],["subtotal","Subtotal","number",false],["discount","Descuento","number",false],["tax","Impuesto","number",false],["total","Total","number",false],["currency","Moneda","select",false,"DOP|USD|EUR"],["valid_until","Válida hasta","date",false],["notes","Notas","textarea",false]
+    ],columns:[["number","N.º"],["title","Título"],["status","Estado"],["total","Total"],["valid_until","Vigencia"]]},
+    "Contratos":{table:"contracts",title:"Contratos",group:"Ventas",desc:"Contratos, versiones, envío y firma electrónica.",action:"Nuevo contrato",fields:[
+      ["title","Título","text",true],["contract_number","Número","text",false],["client_id","Cliente","client",false],["project_id","Proyecto","project",false],["quote_id","Cotización","quote",false],["status","Estado","select",false,"draft|sent|viewed|signed|cancelled"],["terms_version","Versión de términos","text",false],["signed_by_client","Cliente firmó","checkbox",false],["body_html","Contenido del contrato","textarea",false]
+    ],columns:[["contract_number","N.º"],["title","Título"],["status","Estado"],["terms_version","Versión"],["signed_by_client","Firmado"]]},
+    "Galerías":{table:"galleries",title:"Galerías",group:"Entrega",desc:"Galerías privadas, selección de fotos y descargas.",action:"Nueva galería",fields:[
+      ["name","Nombre","text",true],["slug","Slug","text",true],["project_id","Proyecto","project",false],["client_id","Cliente","client",false],["status","Estado","select",false,"draft|published|archived"],["selection_enabled","Permitir selección","checkbox",false],["download_enabled","Permitir descargas","checkbox",false]
+    ],columns:[["name","Galería"],["slug","Slug"],["status","Estado"],["selection_enabled","Selección"],["download_enabled","Descarga"]]},
+    "Entregas":{table:"deliveries",title:"Entregas",group:"Entrega",desc:"Entregas finales y enlaces compartidos con el cliente.",action:"Nueva entrega",fields:[
+      ["name","Nombre","text",true],["project_id","Proyecto","project",false],["client_id","Cliente","client",false],["gallery_id","Galería","gallery",false],["delivery_type","Tipo","select",false,"gallery|download|usb|print|other"],["status","Estado","select",false,"draft|ready|sent|viewed|completed"],["url","Enlace","url",false],["sent_at","Fecha de envío","date",false]
+    ],columns:[["name","Entrega"],["delivery_type","Tipo"],["status","Estado"],["url","Enlace"],["sent_at","Enviado"]]},
+    "Formularios":{table:"forms",title:"Formularios",group:"Cliente",desc:"Cuestionarios y formularios para recopilar información del cliente.",action:"Nuevo formulario",fields:[
+      ["name","Nombre","text",true],["description","Descripción","textarea",false],["form_type","Tipo","select",false,"questionnaire|lead|preferences|other"],["active","Activo","checkbox",false]
+    ],columns:[["name","Formulario"],["form_type","Tipo"],["active","Activo"]]},
+    "Automatizaciones":{table:"automations",title:"Automatizaciones",group:"Negocio",desc:"Disparadores y acciones automáticas para ahorrar tiempo.",action:"Nueva automatización",fields:[
+      ["name","Nombre","text",true],["trigger_type","Disparador","text",true],["conditions","Condiciones JSON","textarea",false],["actions","Acciones JSON","textarea",false],["active","Activa","checkbox",false]
+    ],columns:[["name","Nombre"],["trigger_type","Disparador"],["active","Activa"]]},
+    "Tareas":{table:"tasks",title:"Tareas",group:"Trabajo",desc:"Pendientes internos, responsables, prioridades y vencimientos.",action:"Nueva tarea",fields:[
+      ["title","Título","text",true],["project_id","Proyecto","project",false],["client_id","Cliente","client",false],["description","Descripción","textarea",false],["status","Estado","select",false,"todo|in_progress|done|cancelled"],["priority","Prioridad","select",false,"low|normal|high|urgent"],["due_at","Vencimiento","datetime-local",false]
+    ],columns:[["title","Tarea"],["status","Estado"],["priority","Prioridad"],["due_at","Vence"]]},
+    "Calendario":{table:"calendar_events",title:"Calendario",group:"Trabajo",desc:"Sesiones, bodas, reuniones, entregas y otros eventos.",action:"Nuevo evento",fields:[
+      ["title","Título","text",true],["project_id","Proyecto","project",false],["event_type","Tipo","select",false,"event|shoot|meeting|delivery|deadline|personal"],["starts_at","Inicio","datetime-local",true],["ends_at","Fin","datetime-local",false],["all_day","Todo el día","checkbox",false],["location","Lugar","text",false],["notes","Notas","textarea",false]
+    ],columns:[["title","Evento"],["event_type","Tipo"],["starts_at","Inicio"],["location","Lugar"]]},
+    "Servicios & paquetes":{table:"packages",title:"Servicios & paquetes",group:"Negocio",desc:"Tu catálogo de productos y paquetes para vender más rápido.",action:"Nuevo paquete",fields:[
+      ["name","Nombre","text",true],["description","Descripción","textarea",false],["price","Precio","number",false],["currency","Moneda","select",false,"DOP|USD|EUR"],["active","Activo","checkbox",false]
+    ],columns:[["name","Paquete"],["price","Precio"],["currency","Moneda"],["active","Activo"]]},
+    "Ingresos":{table:"income",title:"Ingresos",group:"Finanzas",desc:"Ingresos vinculados a proyectos y pagos.",action:"Registrar ingreso",fields:[
+      ["project_id","Proyecto","project",false],["category","Categoría","text",false],["description","Descripción","text",false],["amount","Monto","number",true],["currency","Moneda","select",false,"DOP|USD|EUR"],["income_date","Fecha","date",false]
+    ],columns:[["description","Concepto"],["category","Categoría"],["amount","Monto"],["currency","Moneda"],["income_date","Fecha"]]},
+    "Gastos":{table:"expenses",title:"Gastos",group:"Finanzas",desc:"Costos operativos y gastos del negocio fotográfico.",action:"Registrar gasto",fields:[
+      ["category","Categoría","text",true],["description","Descripción","text",false],["amount","Monto","number",true],["currency","Moneda","select",false,"DOP|USD|EUR"],["expense_date","Fecha","date",false]
+    ],columns:[["category","Categoría"],["description","Descripción"],["amount","Monto"],["currency","Moneda"],["expense_date","Fecha"]]}
   };
   const pretty={
     new:"Nuevo",contacted:"Contactado",qualified:"Calificado",won:"Ganado",lost:"Perdido",
@@ -136,6 +169,12 @@ button,input{font:inherit}button{cursor:pointer}
       input='<select id="fld_'+key+'"><option value="">Sin cliente</option>'+related.clients.map(x=>'<option value="'+x.id+'">'+esc((x.first_name+" "+(x.last_name||"")).trim())+'</option>').join("")+'</select>';
     }else if(type==="project"){
       input='<select id="fld_'+key+'"><option value="">Sin proyecto</option>'+related.projects.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join("")+'</select>';
+    }else if(type==="quote"){
+      input='<select id="fld_'+key+'"><option value="">Sin cotización</option>'+related.quotes.map(x=>'<option value="'+x.id+'">'+esc(x.title||x.number||x.id)+'</option>').join("")+'</select>';
+    }else if(type==="gallery"){
+      input='<select id="fld_'+key+'"><option value="">Sin galería</option>'+related.galleries.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join("")+'</select>';
+    }else if(type==="checkbox"){
+      input='<input id="fld_'+key+'" type="checkbox">';
     }else input='<input id="fld_'+key+'" type="'+type+'" '+(required?'required':'')+'>';
     return '<div class="'+(type==="textarea"?"full":"")+'"><label>'+esc(label)+'</label>'+input+'</div>';
   }
@@ -158,10 +197,11 @@ button,input{font:inherit}button{cursor:pointer}
     document.getElementById("moduleAction").onclick=()=>openForm(label);
     document.getElementById("moduleRefresh").onclick=()=>renderCrud(label);
     try{
-      const rows=await fetchRows(cfg), related={clients:[],projects:[]};
-      if(["Proyectos","Pagos"].includes(label))related.clients=await relatedRows("clients");
-      if(label==="Pagos")related.projects=await relatedRows("projects");
-      if(label==="Proyectos")related.clients=related.clients;
+      const rows=await fetchRows(cfg), related={clients:[],projects:[],quotes:[],galleries:[]};
+      if(["Proyectos","Pagos","Cotizaciones","Contratos","Galerías","Entregas","Tareas"].includes(label))related.clients=await relatedRows("clients");
+      if(["Pagos","Cotizaciones","Contratos","Galerías","Entregas","Tareas","Calendario"].includes(label))related.projects=await relatedRows("projects");
+      if(["Contratos"].includes(label))related.quotes=await relatedRows("quotes");
+      if(["Entregas"].includes(label))related.galleries=await relatedRows("galleries");
       window.__photoosRelated=related;
       const count=document.getElementById("rowCount"); if(count)count.textContent=rows.length+" registros";
       const render=filter=>{
@@ -185,18 +225,20 @@ button,input{font:inherit}button{cursor:pointer}
     if(error)alert(error.message);
   }
   async function openForm(label,row){
-    const cfg=moduleConfig[label], related={clients:[],projects:[]};
-    if(label==="Proyectos"){related.clients=await relatedRows("clients")}
-    if(label==="Pagos"){related.projects=await relatedRows("projects")}
+    const cfg=moduleConfig[label], related={clients:[],projects:[],quotes:[],galleries:[]};
+    if(["Proyectos","Pagos","Cotizaciones","Contratos","Galerías","Entregas","Tareas"].includes(label))related.clients=await relatedRows("clients");
+    if(["Pagos","Cotizaciones","Contratos","Galerías","Entregas","Tareas","Calendario"].includes(label))related.projects=await relatedRows("projects");
+    if(label==="Contratos")related.quotes=await relatedRows("quotes");
+    if(label==="Entregas")related.galleries=await relatedRows("galleries");
     const wrap=document.createElement("div");wrap.className="modal-backdrop";
     wrap.innerHTML='<div class="modal"><h3>'+esc(row?"Editar ":"")+esc(cfg.title.slice(0,-1)||cfg.title)+'</h3><div class="muted">Los cambios se guardarán en '+esc(demoMode?"este navegador":"tu workspace de PHOTO OS")+'.</div><form id="recordForm"><div class="form-grid">'+cfg.fields.map(f=>fieldHtml(f,related)).join("")+'</div><div class="modal-actions"><button type="button" class="btn secondary" id="cancelForm">Cancelar</button><button type="submit" class="btn">'+(row?"Guardar cambios":"Crear registro")+'</button></div></form></div>';
     document.body.appendChild(wrap);
-    cfg.fields.forEach(([key])=>{const el=document.getElementById("fld_"+key);if(!el)return;if(row&&row[key]!=null)el.value=key==="paid_at"?String(row[key]).slice(0,10):row[key]});
+    cfg.fields.forEach(([key,,type])=>{const el=document.getElementById("fld_"+key);if(!el)return;if(row&&row[key]!=null){if(type==="checkbox")el.checked=!!row[key];else if(type==="datetime-local"&&row[key])el.value=String(row[key]).slice(0,16);else if(key==="paid_at")el.value=String(row[key]).slice(0,10);else el.value=row[key]}});
     document.getElementById("cancelForm").onclick=()=>wrap.remove();
     wrap.addEventListener("click",e=>{if(e.target===wrap)wrap.remove()});
     document.getElementById("recordForm").onsubmit=async e=>{
       e.preventDefault();
-      const payload={};cfg.fields.forEach(([key,,type])=>{const el=document.getElementById("fld_"+key);let v=el?.value;if(type==="number")v=v===""?0:Number(v);if(v==="")v=null;payload[key]=v});
+      const payload={};cfg.fields.forEach(([key,,type])=>{const el=document.getElementById("fld_"+key);let v=type==="checkbox"?!!el?.checked:el?.value;if(type==="number")v=v===""?0:Number(v);if(type==="datetime-local"&&v)v=new Date(v).toISOString();if(["conditions","actions"].includes(key)&&v){try{v=key==="actions"?JSON.parse(v):JSON.parse(v)}catch(err){throw new Error("El campo "+key+" debe contener JSON válido.")}}if(v==="")v=null;payload[key]=v});
       try{
         if(demoMode){
           if(row){const i=demoStore[cfg.table].findIndex(x=>x.id===row.id);demoStore[cfg.table][i]={...row,...payload}}
@@ -212,25 +254,62 @@ button,input{font:inherit}button{cursor:pointer}
     };
   }
   async function showModule(label){
-    const oldPage=document.querySelector(".page");if(!oldPage)return;
+    const page=document.querySelector(".page"); if(!page)return;
     document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.textContent.trim()===label));
-    if(moduleConfig[label]){await renderCrud(label);return}
+    if(moduleConfig[label] && !["Ingresos","Gastos"].includes(label)){await renderCrud(label);return}
+    if(["Ingresos","Gastos"].includes(label)){await renderCrud(label);return}
+    if(label==="Finanzas"){await renderFinance();return}
+    if(label==="Equipo"){await renderTeam();return}
+    if(label==="Configuración"){await renderSettings();return}
     const descriptions={
-      "Calendario":["Eventos, sesiones, entregas y fechas importantes.","Nuevo evento"],
-      "Tareas":["Pendientes, responsables y vencimientos.","Nueva tarea"],
-      "Cotizaciones":["Propuestas comerciales y líneas de servicio.","Nueva cotización"],
-      "Contratos":["Contratos, versiones y firma electrónica.","Nuevo contrato"],
-      "Galerías":["Galerías privadas y selección de fotos.","Nueva galería"],
-      "Entregas":["Entregas finales y enlaces al cliente.","Nueva entrega"],
-      "Finanzas":["Ingresos, gastos y resultados del negocio.","Registrar movimiento"],
-      "Servicios & paquetes":["Servicios, paquetes y precios de venta.","Nuevo servicio"],
-      "Automatizaciones":["Flujos para seguimiento, reservas, pagos y entrega.","Nueva automatización"],
-      "Equipo":["Miembros, roles y permisos.","Invitar miembro"],
-      "Configuración":["Datos del negocio, preferencias y seguridad.","Editar configuración"]
+      "Selecciones":["Controla las selecciones de imágenes que hacen tus clientes.","Nueva selección"],
+      "Comunicación":["Mensajes y comunicaciones asociados a clientes y proyectos.","Nuevo mensaje"],
+      "Inbox":["Bandeja central de comunicaciones del negocio.","Nuevo mensaje"],
+      "Portal cliente":["Espacio de cliente para propuestas, contratos, formularios y entregas.","Abrir portal"],
+      "IA":["Asistente para operaciones, ventas y producción fotográfica.","Abrir asistente"],
+      "Reportes":["Indicadores de ventas, producción y finanzas.","Generar reporte"],
+      "Perfil":["Tu perfil profesional y datos de usuario.","Editar perfil"]
     };
     const d=descriptions[label]||["Módulo de PHOTO OS.","Nuevo"];
-    oldPage.innerHTML='<section class="hero"><div><div class="label">PHOTO OS</div><h1>'+esc(label)+'</h1><p>'+esc(d[0])+'</p></div><div class="actions"><button class="btn" id="moduleAction">'+esc(d[1])+'</button></div></section><div class="grid"><div class="card"><div class="label">Estado</div><div class="value">Activo</div><div class="sub">Interfaz lista</div></div><div class="card"><div class="label">Workspace</div><div class="value">1</div><div class="sub">'+esc(activeWorkspaceName||"PHOTO OS")+'</div></div><div class="card"><div class="label">Próxima etapa</div><div class="value">V2</div><div class="sub">Funciones completas del módulo</div></div><div class="card"><div class="label">Acción</div><div class="value">+</div><div class="sub">'+esc(d[1])+'</div></div></div><section class="section"><div class="card"><div class="kpi-note">Este módulo forma parte del mapa completo de PHOTO OS. La base de datos ya contiene su estructura; aquí seguiremos incorporando sus formularios, vistas, automatizaciones y flujo de cliente.</div></div></section>';
-    document.getElementById("moduleAction").onclick=()=>alert(d[1]+" — módulo en construcción");
+    page.innerHTML='<section class="hero"><div><div class="label">PHOTO OS</div><h1>'+esc(label)+'</h1><p>'+esc(d[0])+'</p></div><div class="actions"><button class="btn" id="moduleAction">'+esc(d[1])+'</button></div></section><div class="grid"><div class="card"><div class="label">Estado</div><div class="value">Activo</div><div class="sub">Interfaz preparada</div></div><div class="card"><div class="label">Workspace</div><div class="value">1</div><div class="sub">'+esc(activeWorkspaceName||"PHOTO OS")+'</div></div><div class="card"><div class="label">Próxima etapa</div><div class="value">V2</div><div class="sub">Funciones específicas</div></div><div class="card"><div class="label">Acción</div><div class="value">+</div><div class="sub">'+esc(d[1])+'</div></div></div><section class="section"><div class="card"><div class="kpi-note">Este módulo ya está contemplado en la arquitectura de PHOTO OS. Se seguirá integrando con el flujo Lead → Reserva → Contrato → Pago → Producción → Entrega.</div></div></section>';
+    document.getElementById("moduleAction").onclick=()=>alert(d[1]+" — siguiente etapa");
+  }
+
+  async function renderFinance(){
+    const page=document.querySelector(".page");
+    page.innerHTML='<section class="hero"><div><div class="label">NEGOCIO</div><h1>Finanzas</h1><p>Visión general de ingresos, gastos y resultado.</p></div><button class="btn" id="addIncome">Registrar ingreso</button></section><div class="grid"><div class="card"><div class="label">Ingresos</div><div class="value" id="finIncome">—</div><div class="sub">Total registrado</div></div><div class="card"><div class="label">Gastos</div><div class="value" id="finExpense">—</div><div class="sub">Total registrado</div></div><div class="card"><div class="label">Resultado</div><div class="value" id="finNet">—</div><div class="sub">Ingresos − gastos</div></div><div class="card"><div class="label">Moneda</div><div class="value">DOP</div><div class="sub">Resumen de referencia</div></div></div><section class="section"><div class="toolbar"><div class="toolbar-left"><button class="mini" id="openIncome">Ver ingresos</button><button class="mini" id="openExpense">Ver gastos</button></div></div></section>';
+    try{
+      const inc=await relatedRows("income"), exp=await relatedRows("expenses");
+      const sum=a=>a.reduce((s,x)=>s+Number(x.amount||0),0);
+      const i=sum(inc),e=sum(exp); document.getElementById("finIncome").textContent=i.toLocaleString("en-US",{maximumFractionDigits:2});document.getElementById("finExpense").textContent=e.toLocaleString("en-US",{maximumFractionDigits:2});document.getElementById("finNet").textContent=(i-e).toLocaleString("en-US",{maximumFractionDigits:2});
+    }catch(err){}
+    document.getElementById("openIncome").onclick=()=>showModule("Ingresos");
+    document.getElementById("openExpense").onclick=()=>showModule("Gastos");
+    document.getElementById("addIncome").onclick=()=>openForm("Ingresos");
+  }
+  async function renderTeam(){
+    const page=document.querySelector(".page");
+    page.innerHTML='<section class="hero"><div><div class="label">NEGOCIO</div><h1>Equipo</h1><p>Miembros y roles del workspace.</p></div><button class="btn" id="inviteBtn">Invitar miembro</button></section><section class="section"><div class="card table-wrap" id="teamList"><div class="empty">Cargando…</div></div></section>';
+    try{
+      if(demoMode){document.getElementById("teamList").innerHTML='<div class="empty">Modo demo. Inicia sesión para administrar miembros y permisos.</div>';return}
+      const {data,error}=await client.from("workspace_members").select("user_id,role,created_at,profiles(full_name,avatar_url)").eq("workspace_id",activeWorkspaceId);
+      if(error)throw error;
+      document.getElementById("teamList").innerHTML='<table class="data-table"><thead><tr><th>Nombre</th><th>Rol</th><th>Desde</th></tr></thead><tbody>'+((data||[]).map(x=>'<tr><td>'+esc(x.profiles?.full_name||x.user_id)+'</td><td>'+esc(x.role)+'</td><td>'+new Date(x.created_at).toLocaleDateString("es-DO")+'</td></tr>').join("")||'<tr><td colspan="3">Sin miembros</td></tr>')+'</tbody></table>';
+    }catch(e){document.getElementById("teamList").innerHTML='<div class="empty">'+esc(e.message||"No se pudo cargar el equipo.")+'</div>'}
+    document.getElementById("inviteBtn").onclick=()=>alert("La invitación por correo será integrada en la siguiente etapa de Team/Permissions.");
+  }
+  async function renderSettings(){
+    const page=document.querySelector(".page");
+    let settings=null;
+    if(!demoMode){try{const r=await client.from("workspace_settings").select("*").eq("workspace_id",activeWorkspaceId).maybeSingle();settings=r.data}catch(e){}}
+    settings=settings||{business_name:activeWorkspaceName||"Pedro Ramirez Photos",email:"",phone:"",website:"",country:"DO",timezone:"America/Santo_Domingo",default_currency:"USD"};
+    page.innerHTML='<section class="hero"><div><div class="label">CUENTA</div><h1>Configuración</h1><p>Datos del negocio, moneda, zona horaria y contacto.</p></div><button class="btn" id="saveSettings">Guardar cambios</button></section><section class="section"><div class="card"><form id="settingsForm"><div class="form-grid"><div><label>Nombre del negocio</label><input id="s_business_name" value="'+esc(settings.business_name)+'"></div><div><label>Correo</label><input id="s_email" type="email" value="'+esc(settings.email||"")+'"></div><div><label>Teléfono</label><input id="s_phone" value="'+esc(settings.phone||"")+'"></div><div><label>Sitio web</label><input id="s_website" value="'+esc(settings.website||"")+'"></div><div><label>País</label><input id="s_country" value="'+esc(settings.country||"DO")+'"></div><div><label>Zona horaria</label><input id="s_timezone" value="'+esc(settings.timezone||"America/Santo_Domingo")+'"></div><div><label>Moneda predeterminada</label><select id="s_currency"><option>DOP</option><option>USD</option><option>EUR</option></select></div></div></form></div></section>';
+    document.getElementById("s_currency").value=settings.default_currency||"USD";
+    document.getElementById("saveSettings").onclick=async()=>{
+      if(demoMode){activeWorkspaceName=document.getElementById("s_business_name").value||activeWorkspaceName;alert("Guardado en modo demo.");return}
+      const payload={workspace_id:activeWorkspaceId,business_name:document.getElementById("s_business_name").value,email:document.getElementById("s_email").value||null,phone:document.getElementById("s_phone").value||null,website:document.getElementById("s_website").value||null,country:document.getElementById("s_country").value||"DO",timezone:document.getElementById("s_timezone").value||"America/Santo_Domingo",default_currency:document.getElementById("s_currency").value};
+      const q=await client.from("workspace_settings").upsert(payload);if(q.error)alert(q.error.message);else alert("Configuración guardada.");
+    };
   }
   document.addEventListener("click",async e=>{
     const btn=e.target.closest(".nav button");
