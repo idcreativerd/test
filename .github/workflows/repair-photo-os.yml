@@ -1,0 +1,28 @@
+name: Repair PHOTO OS
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  repair:
+    if: github.event.head_commit.message != 'Repair PHOTO OS syntax'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Repair generated index
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          s=s.replace("+'(label===\"Formularios\"?'<button class=\"mini\" data-form-builder=\"'+esc(r.id)+'\">Campos</button>':'')", "+(label===\"Formularios\"?'<button class=\"mini\" data-form-builder=\"'+esc(r.id)+'\">Campos</button>':'')")
+          s=s.replace('}tedRows("income"), exp=await relatedRows("expenses");', '}const inc=await relatedRows("income"), exp=await relatedRows("expenses");')
+          p.write_text(s)
+          PY
+          if git diff --quiet -- index.html; then exit 0; fi
+          git config user.name 'PHOTO OS Bot'
+          git config user.email 'photo-os-bot@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Repair PHOTO OS syntax'
+          git push
