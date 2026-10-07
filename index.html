@@ -38,9 +38,9 @@ button,input{font:inherit}button{cursor:pointer}
   const root=document.getElementById("root"), notice=document.getElementById("notice");
   let client=null, state={projects:0,clients:0,leads:0,payments:0};
   let currentSession=null, demoMode=false, pendingProjectId=null;
-  const demoStore={leads:[],clients:[],projects:[],payments:[],quotes:[],contracts:[],galleries:[],deliveries:[],forms:[],automations:[],tasks:[],calendar_events:[],packages:[],income:[],expenses:[],selections:[],messages:[]};
+  const demoStore={leads:[],clients:[],projects:[],payments:[],quotes:[],contracts:[],galleries:[],deliveries:[],forms:[],form_fields:[],gallery_assets:[],automations:[],tasks:[],calendar_events:[],packages:[],income:[],expenses:[],selections:[],messages:[]};
   function demoKey(table){return "photoos_demo_"+table}
-  function loadDemo(){["leads","clients","projects","payments","quotes","contracts","galleries","deliveries","forms","automations","tasks","calendar_events","packages","income","expenses","selections","messages"].forEach(t=>{try{demoStore[t]=JSON.parse(localStorage.getItem(demoKey(t))||"[]")}catch(e){demoStore[t]=[]}})}
+  function loadDemo(){["leads","clients","projects","payments","quotes","contracts","galleries","deliveries","forms","form_fields","gallery_assets","automations","tasks","calendar_events","packages","income","expenses","selections","messages"].forEach(t=>{try{demoStore[t]=JSON.parse(localStorage.getItem(demoKey(t))||"[]")}catch(e){demoStore[t]=[]}})}
   function saveDemo(t){try{if(!demoStore[t])demoStore[t]=[];localStorage.setItem(demoKey(t),JSON.stringify(demoStore[t]))}catch(e){}}
   loadDemo();
   function msg(t,err){notice.textContent=t;notice.className="notice"+(err?" error":"");notice.style.display="block"}
