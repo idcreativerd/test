@@ -174,7 +174,7 @@ button,input{font:inherit}button{cursor:pointer}
     ],columns:[["first_name","Nombre"],["last_name","Apellido"],["email","Correo"],["phone","Teléfono"]]},
     "Proyectos":{table:"projects",title:"Proyectos",group:"Trabajo",desc:"Cada trabajo con fecha, cliente, estado y valor.",action:"Nuevo proyecto",fields:[
       ["name","Nombre del proyecto","text",true],["client_id","Cliente","client",false],["project_type","Tipo","text",false],["booking_kind","Tipo de reserva","select",false,"session|preboda|wedding|event|other"],["status","Estado","select",false,"lead|planning|shooting|editing|delivered|closed"],["event_date","Fecha del evento","date",false],["start_time","Hora de inicio","time",false],["duration_minutes","Duración (minutos)","number",false],["location","Lugar","text",false],["total_value","Valor total","number",false],["currency","Moneda","select",false,"DOP|USD|EUR"],["notes","Notas","textarea",false]
-    ],columns:[["name","Proyecto"],["project_type","Tipo"],["event_date","Fecha"],["status","Estado"],["total_value","Valor"]]},
+    ],columns:[["name","Proyecto"],["booking_kind","Reserva"],["event_date","Fecha"],["start_time","Hora"],["duration_minutes","Duración"],["reservation_status","Reserva"],["status","Estado"],["total_value","Valor"]]},
     "Pagos":{table:"payments",title:"Pagos",group:"Ventas",desc:"Anticipos, saldos, fechas de vencimiento y pagos recibidos.",action:"Registrar pago",fields:[
       ["project_id","Proyecto","project",false],["amount","Monto","number",true],["currency","Moneda","select",false,"DOP|USD|EUR"],["status","Estado","select",false,"pending|paid|overdue|partial"],["due_date","Fecha límite","date",false],["paid_at","Fecha de pago","date",false],["notes","Notas","textarea",false]
     ],columns:[["project_id","Proyecto"],["amount","Monto"],["currency","Moneda"],["status","Estado"],["due_date","Vence"]]},
@@ -359,9 +359,28 @@ button,input{font:inherit}button{cursor:pointer}
     if(label==="Contratos")related.quotes=await relatedRows("quotes");
     if(label==="Entregas")related.galleries=await relatedRows("galleries");
     const wrap=document.createElement("div");wrap.className="modal-backdrop";
-    wrap.innerHTML='<div class="modal"><h3>'+esc(row?"Editar ":"")+esc(cfg.title.slice(0,-1)||cfg.title)+'</h3><div class="muted">Los cambios se guardarán en '+esc(demoMode?"este navegador":"tu workspace de PHOTO OS")+'.</div><form id="recordForm"><div class="form-grid">'+cfg.fields.map(f=>fieldHtml(f,related)).join("")+'</div><div class="modal-actions"><button type="button" class="btn secondary" id="cancelForm">Cancelar</button><button type="submit" class="btn">'+(row?"Guardar cambios":"Crear registro")+'</button></div></form></div>';
+    wrap.innerHTML='<div class="modal"><h3>'+esc(row?"Editar ":"")+esc(cfg.title.slice(0,-1)||cfg.title)+'</h3><div class="muted">Los cambios se guardarán en '+esc(demoMode?"este navegador":"tu workspace de PHOTO OS")+'.</div><form id="recordForm"><div class="form-grid">'+cfg.fields.map(f=>fieldHtml(f,related)).join("")+'</div>'+(label==="Proyectos"?'<div id="bookingNotice" class="booking-ok">Define fecha, tipo, hora y duración para controlar automáticamente la disponibilidad.</div><div style="margin-top:10px"><button type="button" class="mini" id="checkBooking">Comprobar disponibilidad</button></div>':'')+'<div class="modal-actions"><button type="button" class="btn secondary" id="cancelForm">Cancelar</button><button type="submit" class="btn">'+(row?"Guardar cambios":"Crear registro")+'</button></div></form></div>';
     document.body.appendChild(wrap);
     cfg.fields.forEach(([key,,type])=>{const el=document.getElementById("fld_"+key);if(!el)return;if(row&&row[key]!=null){if(type==="checkbox")el.checked=!!row[key];else if(type==="datetime-local"&&row[key])el.value=String(row[key]).slice(0,16);else if(key==="paid_at")el.value=String(row[key]).slice(0,10);else el.value=row[key]}});if(pendingProjectId&&document.getElementById("fld_project_id"))document.getElementById("fld_project_id").value=pendingProjectId;if(pendingProjectId&&document.getElementById("fld_client_id")){const pp=demoMode?demoStore.projects.find(x=>x.id===pendingProjectId):(await client.from("projects").select("client_id").eq("id",pendingProjectId).maybeSingle()).data;if(pp?.client_id)document.getElementById("fld_client_id").value=pp.client_id}pendingProjectId=null;
+    if(label==="Proyectos"){
+      const updateBookingNotice=async()=>{
+        const noticeEl=document.getElementById("bookingNotice"); if(!noticeEl)return;
+        const date=document.getElementById("fld_event_date")?.value, kind=document.getElementById("fld_booking_kind")?.value||"session", start=document.getElementById("fld_start_time")?.value||null, duration=document.getElementById("fld_duration_minutes")?.value||null;
+        if(!date){noticeEl.className="booking-ok";noticeEl.textContent="Define una fecha para comprobar disponibilidad.";return}
+        if(kind!=="wedding"&&!start){noticeEl.className="booking-warning";noticeEl.textContent="⚠️ Esta reserva necesita una hora de inicio. Las sesiones y prebodas se controlan por horario.";return}
+        try{
+          const result=await checkBookingAvailability({event_date:date,booking_kind:kind,start_time:start,duration_minutes:duration},row?.id||null);
+          if(result.has_conflict){
+            const detail=(result.conflicts||[]).map(x=>x.name+" · "+(x.start_time?String(x.start_time).slice(0,5):"día completo")).join(" | ");
+            noticeEl.className="booking-warning";noticeEl.textContent="⚠️ "+(result.message||"Hay un conflicto.")+(detail?" "+detail:"");
+          }else{
+            noticeEl.className="booking-ok";noticeEl.textContent="✓ Fecha disponible para "+bookingSummary({event_date:date,booking_kind:kind,start_time:start,duration_minutes:duration||60})+".";
+          }
+        }catch(err){noticeEl.className="booking-warning";noticeEl.textContent="No se pudo comprobar disponibilidad: "+(err.message||"error");}
+      };
+      document.getElementById("checkBooking").onclick=updateBookingNotice;
+      ["fld_event_date","fld_booking_kind","fld_start_time","fld_duration_minutes"].forEach(id=>document.getElementById(id)?.addEventListener("change",updateBookingNotice));
+    }
     document.getElementById("cancelForm").onclick=()=>wrap.remove();
     wrap.addEventListener("click",e=>{if(e.target===wrap)wrap.remove()});
     document.getElementById("recordForm").onsubmit=async e=>{
