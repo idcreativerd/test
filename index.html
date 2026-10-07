@@ -74,7 +74,24 @@ button,input{font:inherit}button{cursor:pointer}
     document.getElementById("dbState").textContent=wsId?"Conectado":"Sin workspace";
     document.getElementById("sessionState").textContent=session?"Sesión activa":"Demo";
   }
+  async function renderPublicPortal(token){
+    const root=document.getElementById("root");
+    root.innerHTML='<main style="min-height:100vh;background:#f6f6f3;padding:28px"><div style="max-width:980px;margin:auto"><div class="brand" style="margin-bottom:24px"><span>◉</span><div>PHOTO OS<small>Client Portal</small></div></div><div id="publicPortalBody"><div class="card empty">Cargando portal…</div></div></div></main>';
+    try{
+      const res=await fetch(SUPABASE_URL+"/rest/v1/rpc/get_public_portal",{method:"POST",headers:{"apikey":SUPABASE_KEY,"Content-Type":"application/json"},body:JSON.stringify({p_token:token})});
+      const data=await res.json();
+      if(!res.ok||!data?.ok)throw new Error(data?.error||"Enlace no válido o expirado.");
+      const p=data.project||{},c=data.client||{},quotes=data.quotes||[],contracts=data.contracts||[],payments=data.payments||[],galleries=data.galleries||[],deliveries=data.deliveries||[];
+      const total=Number(p.total_value||0),paid=payments.filter(x=>x.status==="paid").reduce((a,x)=>a+Number(x.amount||0),0),balance=Math.max(0,total-paid);
+      const money=n=>(Number(n||0)).toLocaleString("en-US",{maximumFractionDigits:2})+" "+esc(p.currency||"DOP");
+      const q=quotes[0],ct=contracts[0];
+      document.getElementById("publicPortalBody").innerHTML='<section class="hero"><div><div class="label">PORTAL DEL CLIENTE</div><h1>'+esc(p.name||"Proyecto")+'</h1><p>'+esc((c.first_name||"")+" "+(c.last_name||""))+' · '+esc(p.event_date||"")+' · '+esc(p.location||"")+'</p></div><span class="pill">Seguro</span></section><div class="grid"><div class="card"><div class="label">Valor del proyecto</div><div class="value">'+money(total)+'</div></div><div class="card"><div class="label">Pagado</div><div class="value">'+money(paid)+'</div></div><div class="card"><div class="label">Saldo</div><div class="value">'+money(balance)+'</div></div></div><div class="detail-grid"><div><div class="card"><h3>Cotización</h3>'+(q?'<div class="link-card"><strong>'+esc(q.title||"Cotización")+'</strong><div class="meta">Estado: '+esc(q.status||"")+' · Total: '+money(q.total)+(q.valid_until?" · Válida hasta "+esc(q.valid_until):"")+'</div>'+(q.notes?'<p>'+esc(q.notes)+'</p>':"")+'</div>':'<div class="empty">No hay cotización disponible.</div>')+'</div><div class="card" style="margin-top:14px"><h3>Contrato</h3>'+(ct?'<div class="link-card"><strong>'+esc(ct.title||"Contrato")+'</strong><div class="meta">'+(ct.signed_by_client?"Firmado":"Pendiente de firma")+(ct.signed_at?" · "+new Date(ct.signed_at).toLocaleDateString("es-DO"):"")+'</div><div style="margin-top:12px;line-height:1.65">'+esc((ct.body_html||"").replace(/<[^>]*>/g," ")).slice(0,12000)+'</div></div>':'<div class="empty">No hay contrato disponible.</div>')+'</div></div><div><div class="card"><h3>Pagos</h3>'+(payments.length?payments.map(x=>'<div class="row"><span>'+money(x.amount)+' · '+esc(x.status||"")+'</span><span>'+esc(x.due_date||"")+'</span></div>').join(""):'<div class="empty">No hay pagos registrados.</div>')+'</div><div class="card" style="margin-top:14px"><h3>Galerías</h3>'+(galleries.length?galleries.map(x=>'<div class="link-card"><strong>'+esc(x.name||"Galería")+'</strong><div class="meta">'+esc(x.status||"")+(x.selection_enabled?" · Selección activa":"")+(x.download_enabled?" · Descargas activas":"")+'</div></div>').join(""):'<div class="empty">Aún no hay galerías disponibles.</div>')+'</div><div class="card" style="margin-top:14px"><h3>Entregas</h3>'+(deliveries.length?deliveries.map(x=>'<div class="link-card"><strong>'+esc(x.name||"Entrega")+'</strong><div class="meta">'+esc(x.status||"")+'</div>'+(x.url?'<a class="btn" href="'+esc(x.url)+'" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px">Abrir entrega</a>':"")+'</div>').join(""):'<div class="empty">Aún no hay entregas disponibles.</div>')+'</div></div></div><div class="card" style="margin-top:14px"><div class="kpi-note">Portal de solo lectura v1: la aceptación, firma y pago en línea se habilitarán en la siguiente capa.</div></div>';
+    }catch(e){document.getElementById("publicPortalBody").innerHTML='<div class="card empty"><h2>Enlace no disponible</h2><p>'+esc(e.message||"No se pudo abrir el portal.")+'</p></div>'}
+  }
+
   async function init(){
+    const publicMatch=location.pathname.match(/^\\/p\\/([^/]+)/);
+    if(publicMatch){await renderPublicPortal(decodeURIComponent(publicMatch[1]));return}
     // Bind actions before checking external services so Demo always works.
     const loginBtn=document.getElementById("loginBtn"), demoBtn=document.getElementById("demoBtn");
     const signupBtn=document.getElementById("signupBtn");
